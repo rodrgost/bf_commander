@@ -1,0 +1,14 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background: #050d05;
+  font-family: 'Courier New', Courier, monospace;
+  color: #e2e8f0;
+  overflow: hidden;
+}

@@ -1,0 +1,65 @@
+.bar {
+  display: flex;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #0f1a0f;
+  border-top: 2px solid #1f3f1f;
+}
+
+.btn {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 16px;
+  background: #1a2e1a;
+  border: 2px solid #2d4d2d;
+  border-radius: 8px;
+  color: #ccc;
+  cursor: pointer;
+  min-width: 90px;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.btn:hover:not(.disabled) {
+  background: #243624;
+  border-color: #4ade80;
+}
+
+.selected {
+  border-color: #4ade80 !important;
+  background: #14401a !important;
+  box-shadow: 0 0 8px #4ade8066;
+}
+
+.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.icon { font-size: 22px; }
+.label { font-size: 11px; font-weight: 700; color: #86efac; letter-spacing: 0.5px; }
+.cost  { font-size: 10px; color: #94a3b8; }
+
+.cdOverlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+  transition: height 0.1s linear;
+}
+
+.cdTimer {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 18px;
+  font-weight: 900;
+  color: white;
+  text-shadow: 0 0 6px #000;
+}

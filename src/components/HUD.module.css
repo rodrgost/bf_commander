@@ -1,0 +1,107 @@
+.hud {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 6px 14px;
+  background: #0a140a;
+  border-bottom: 2px solid #1f3f1f;
+  min-height: 46px;
+  flex-wrap: wrap;
+}
+
+/* ── Timer ── */
+.section { display: flex; align-items: center; gap: 5px; }
+.timerIcon { font-size: 14px; }
+.timer {
+  font-size: 17px; font-weight: 700; color: #94a3b8;
+  font-variant-numeric: tabular-nums; letter-spacing: 1px;
+}
+
+/* ── Ticket bars ── */
+.ticketGroup {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.ticketLabel {
+  font-size: 9px; font-weight: 700; letter-spacing: 1px; min-width: 46px;
+}
+.ticketBarWrap {
+  width: 100px; height: 8px;
+  background: #1e293b; border-radius: 4px;
+  overflow: hidden; border: 1px solid #334155;
+  display: flex;
+}
+.ticketBar {
+  height: 100%; border-radius: 4px;
+  transition: width 0.3s ease, background 0.4s;
+}
+.ticketValue {
+  font-size: 12px; font-weight: 700;
+  font-variant-numeric: tabular-nums; min-width: 26px;
+}
+
+/* ── CP score ── */
+.cpScore { display: flex; align-items: center; gap: 6px; }
+.blueScore { font-size: 20px; font-weight: 900; color: #60a5fa; }
+.redScore  { font-size: 20px; font-weight: 900; color: #f87171; }
+.cpDots { display: flex; gap: 4px; }
+.cpDot {
+  width: 10px; height: 10px; border-radius: 50%;
+  border: 1px solid #475569;
+}
+.cpDot.neutral { background: #64748b; }
+.cpDot.blue    { background: #3b82f6; }
+.cpDot.red     { background: #ef4444; }
+
+/* ── Ticket bar — locked state ── */
+.ticketBarLocked {
+  opacity: 0.45;
+  filter: grayscale(0.7);
+}
+
+/* ── Unlock countdown (compact, replaces the old lockBadge) ── */
+.lockTimer {
+  font-size: 9px; font-weight: 700;
+  color: #64748b; letter-spacing: 0.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Commander points ── */
+.cpSection { display: flex; align-items: center; gap: 6px; }
+.cpLabel   { font-size: 9px; font-weight: 700; color: #86efac; letter-spacing: 1px; }
+.cpBarWrap {
+  width: 90px; height: 8px;
+  background: #1e293b; border-radius: 4px;
+  overflow: hidden; border: 1px solid #334155;
+}
+.cpBar {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e, #86efac);
+  border-radius: 4px; transition: width 0.2s ease;
+}
+.cpValue { font-size: 12px; color: #86efac; font-weight: 700; min-width: 24px; }
+
+/* ── UAV / Hint ── */
+.uavBadge {
+  padding: 2px 9px;
+  background: #052e16; border: 1px solid #22c55e; border-radius: 20px;
+  color: #4ade80; font-size: 10px; font-weight: 700;
+  animation: pulse 1s infinite alternate;
+}
+.hint {
+  color: #facc15; font-size: 11px; font-weight: 600;
+  animation: pulse 0.6s infinite alternate;
+}
+@keyframes pulse { from { opacity: 0.7; } to { opacity: 1; } }
+
+/* ── Restart ── */
+.restartBtn {
+  margin-left: auto;
+  padding: 5px 16px;
+  background: #1e3a5f; border: 2px solid #3b82f6;
+  border-radius: 6px; color: #93c5fd;
+  font-size: 12px; font-weight: 700; cursor: pointer; letter-spacing: 1px;
+  transition: background 0.15s;
+}
+.restartBtn:hover { background: #2563eb; color: white; }
