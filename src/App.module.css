@@ -5,8 +5,8 @@
 }
 
 body {
-  background: #050d05;
-  color: #e2e8f0;
+  background: #060e18;
+  color: #94aec0;
   font-family: 'Courier New', Courier, monospace;
   overflow: hidden;
 }
@@ -23,24 +23,23 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 5px 16px;
-  background: #050d05;
-  border-bottom: 1px solid #0e2035;
+  padding: 4px 16px;
+  background: #040b14;
+  border-bottom: 1px solid #0a1e30;
   flex-shrink: 0;
 }
 
 .logo {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 900;
-  color: #4ade80;
+  color: #00C8FF;
   letter-spacing: 3px;
 }
 
 .subtitle {
   font-size: 9px;
-  color: '#334155';
   letter-spacing: 2px;
-  color: #1e3a5f;
+  color: #1a3a55;
 }
 
 /* Map + context panel side by side */

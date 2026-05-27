@@ -1,9 +1,10 @@
 .bar {
   display: flex;
-  gap: 10px;
-  padding: 12px 16px;
-  background: #0f1a0f;
-  border-top: 2px solid #1f3f1f;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #060d16;
+  border-top: 1px solid #0e2035;
+  flex-shrink: 0;
 }
 
 .btn {
@@ -13,53 +14,80 @@
   flex-direction: column;
   align-items: center;
   gap: 3px;
-  padding: 10px 16px;
-  background: #1a2e1a;
-  border: 2px solid #2d4d2d;
-  border-radius: 8px;
-  color: #ccc;
+  padding: 9px 14px 8px;
+  background: #0a1828;
+  border: 1px solid #1a3050;
+  border-radius: 3px;
+  color: #5a8099;
   cursor: pointer;
-  min-width: 90px;
-  transition: border-color 0.15s, background 0.15s;
+  min-width: 82px;
+  transition: border-color 0.12s, background 0.12s;
+  font-family: 'Courier New', Courier, monospace;
 }
 
 .btn:hover:not(.disabled) {
-  background: #243624;
-  border-color: #4ade80;
+  background: #0d2038;
+  border-color: #00C8FF88;
+  color: #a0d8f0;
 }
 
+/* Active / selected — waiting for map click */
 .selected {
-  border-color: #4ade80 !important;
-  background: #14401a !important;
-  box-shadow: 0 0 8px #4ade8066;
+  border-color: #00C8FF !important;
+  background: #082038 !important;
+  box-shadow: 0 0 10px #00C8FF44, inset 0 0 8px #00C8FF11;
+  color: #00C8FF !important;
 }
 
 .disabled {
-  opacity: 0.45;
+  opacity: 0.35;
   cursor: not-allowed;
 }
 
-.icon { font-size: 22px; }
-.label { font-size: 11px; font-weight: 700; color: #86efac; letter-spacing: 0.5px; }
-.cost  { font-size: 10px; color: #94a3b8; }
+/* Keybind badge — top-left */
+.keybind {
+  position: absolute;
+  top: 4px;
+  left: 5px;
+  font-size: 8px;
+  font-weight: 900;
+  color: #00C8FF;
+  background: #002a40;
+  border: 1px solid #00C8FF55;
+  border-radius: 2px;
+  padding: 0px 3px;
+  line-height: 13px;
+  letter-spacing: 0;
+}
 
+/* Keybind dimmed during cooldown */
+.keybindCd {
+  color: #FFCC00;
+  background: #2a1e00;
+  border-color: #FFCC0055;
+}
+
+.icon  { font-size: 20px; margin-top: 4px; }
+.label { font-size: 10px; font-weight: 700; color: #7ab4cc; letter-spacing: 0.5px; }
+.cost  { font-size: 9px; color: #2e4a5e; }
+
+/* Cooldown fill overlay (bottom-to-top wipe) */
 .cdOverlay {
   position: absolute;
-  bottom: 0;
-  left: 0;
+  bottom: 0; left: 0;
   width: 100%;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(255, 204, 0, 0.10);
+  border-top: 1px solid #FFCC0033;
   pointer-events: none;
   transition: height 0.1s linear;
 }
 
+/* Big cooldown countdown */
 .cdTimer {
   position: absolute;
-  top: 50%;
-  left: 50%;
+  top: 50%; left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 18px;
-  font-weight: 900;
-  color: white;
-  text-shadow: 0 0 6px #000;
+  font-size: 18px; font-weight: 900;
+  color: #FFCC00;
+  text-shadow: 0 0 8px #000, 0 0 16px #FFCC0066;
 }

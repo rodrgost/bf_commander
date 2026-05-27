@@ -80,6 +80,31 @@ export function useGameLoop(config: GameConfig) {
     })
   }, [])
 
+  // ── Keyboard shortcuts ────────────────────────────────────────────────────
+  // Q/W/E/R/A/S → select abilities  |  Escape → cancel pending
+  useEffect(() => {
+    const KEYBINDS: Record<string, AbilityId> = {
+      q: 'uav', w: 'artillery', e: 'ammo', r: 'emp',
+      a: 'order_attack', s: 'order_defend',
+    }
+    const handleKey = (ev: KeyboardEvent) => {
+      if (ev.target instanceof HTMLInputElement || ev.target instanceof HTMLTextAreaElement) return
+      if (ev.key === 'Escape') {
+        setRenderState(s => ({ ...s, pendingAbility: null }))
+        return
+      }
+      const id = KEYBINDS[ev.key.toLowerCase()]
+      if (!id) return
+      setRenderState(s => {
+        if (s.phase !== 'playing') return s
+        if (s.pendingAbility === id) return { ...s, pendingAbility: null }
+        return { ...s, pendingAbility: id }
+      })
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [])
+
   const fireAbility = useCallback((pos: Vec2) => {
     setRenderState(s => {
       if (!s.pendingAbility) return s

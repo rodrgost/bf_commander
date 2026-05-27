@@ -9,16 +9,35 @@ interface Props {
   fireAbilityAt: (id: AbilityId, pos: Vec2) => void
 }
 
-// ── Shared style tokens ───────────────────────────────────────────────────
+// ── BF4 colour tokens ─────────────────────────────────────────────────────
+
+const BF4 = {
+  blue:        '#00C8FF',
+  blueDim:     '#0065CC',
+  blueBg:      '#03101a',
+  red:         '#FF6633',
+  redDim:      '#CC3300',
+  redBg:       '#1a0800',
+  neutral:     '#555880',
+  neutralBg:   '#0d0d14',
+  cooldown:    '#FFCC00',
+  suppress:    '#a855f7',
+  text:        '#7a9ab5',
+  textDim:     '#2e4a5e',
+  border:      '#0e2035',
+  panelBg:     '#060e18',
+  headerBg:    '#070f1c',
+  rowBorder:   '#081420',
+}
 
 const mono = "'Courier New', Courier, monospace"
 
 const panel: CSSProperties = {
   width: 220,
   minWidth: 220,
-  background: '#06101a',
-  borderLeft: '1px solid #112236',
-  color: '#7a9ab5',
+  background: BF4.panelBg,
+  borderLeft: `1px solid ${BF4.border}`,
+  color: BF4.text,
   fontFamily: mono,
   fontSize: 11,
   display: 'flex',
@@ -31,16 +50,16 @@ const sectionTitle: CSSProperties = {
   fontSize: 8,
   fontWeight: 900,
   letterSpacing: '2.5px',
-  color: '#2d4f6a',
+  color: BF4.textDim,
   padding: '7px 12px 4px',
-  borderBottom: '1px solid #0e2035',
+  borderBottom: `1px solid ${BF4.border}`,
   textTransform: 'uppercase',
 }
 
 const header: CSSProperties = {
   padding: '10px 12px 8px',
-  borderBottom: '1px solid #0e2035',
-  background: '#081420',
+  borderBottom: `1px solid ${BF4.border}`,
+  background: BF4.headerBg,
 }
 
 const headerTitle: CSSProperties = {
@@ -61,7 +80,7 @@ const rowStyle: CSSProperties = {
 const hpBarTrack: CSSProperties = {
   flex: 1,
   height: 3,
-  background: '#0e2035',
+  background: BF4.border,
   borderRadius: 2,
   overflow: 'hidden',
 }
@@ -94,10 +113,10 @@ function AbilBtn({
         gap: 7,
         padding: '5px 10px',
         margin: '2px 8px',
-        background: canUse ? '#0b1e30' : '#060f1a',
-        border: `1px solid ${canUse ? '#1a3a5c' : '#0d1e2e'}`,
-        borderRadius: 3,
-        color: canUse ? '#8ab4cc' : '#243547',
+        background: canUse ? BF4.blueBg : '#040a10',
+        border: `1px solid ${canUse ? BF4.blueDim + '88' : BF4.border}`,
+        borderRadius: 2,
+        color: canUse ? BF4.text : BF4.textDim,
         fontSize: 10,
         fontFamily: mono,
         cursor: canUse ? 'pointer' : 'not-allowed',
@@ -110,7 +129,7 @@ function AbilBtn({
       <span style={{ flex: 1 }}>{label}</span>
       <span style={{
         fontSize: 8,
-        color: onCd ? '#f97316' : noPoints ? '#ef4444' : '#2d4f6a',
+        color: onCd ? BF4.cooldown : noPoints ? BF4.red : BF4.textDim,
         fontWeight: 700,
       }}>
         {reason}
@@ -122,25 +141,25 @@ function AbilBtn({
 // ── Role & status labels ──────────────────────────────────────────────────
 
 const ROLE_LABEL: Record<string, { icon: string; color: string; text: string }> = {
-  attack:  { icon: '⚔', color: '#f97316', text: 'ATAQUE'  },
-  defend:  { icon: '🛡', color: '#3b82f6', text: 'DEFESA'  },
-  hold:    { icon: '📌', color: '#22c55e', text: 'POSIÇÃO' },
-  retreat: { icon: '↩', color: '#ef4444', text: 'RECUO'   },
+  attack:  { icon: '⚔', color: BF4.red,      text: 'ATAQUE'  },
+  defend:  { icon: '🛡', color: BF4.blue,     text: 'DEFESA'  },
+  hold:    { icon: '📌', color: '#00BF44',    text: 'POSIÇÃO' },
+  retreat: { icon: '↩', color: BF4.redDim,   text: 'RECUO'   },
 }
 
 const STATUS_LABEL: Record<string, { icon: string; color: string }> = {
-  idle:       { icon: '●',  color: '#475569' },
-  moving:     { icon: '▶',  color: '#60a5fa' },
-  fighting:   { icon: '⚔', color: '#f97316' },
-  suppressed: { icon: '⚡', color: '#a855f7' },
-  dead:       { icon: '↺',  color: '#374151' },
+  idle:       { icon: '●',  color: BF4.textDim  },
+  moving:     { icon: '▶',  color: BF4.blue     },
+  fighting:   { icon: '⚔', color: BF4.red      },
+  suppressed: { icon: '⚡', color: BF4.suppress },
+  dead:       { icon: '↺',  color: '#2a3a4a'    },
 }
 
 // ── Squad HP bar ──────────────────────────────────────────────────────────
 
 function HpBar({ hp, maxHp }: { hp: number; maxHp: number }) {
   const pct = Math.max(0, hp / maxHp)
-  const fill = pct > 0.5 ? '#22c55e' : pct > 0.25 ? '#f59e0b' : '#ef4444'
+  const fill = pct > 0.5 ? '#00BF44' : pct > 0.25 ? BF4.cooldown : BF4.red
   return (
     <div style={hpBarTrack}>
       <div style={{ width: `${pct * 100}%`, height: '100%', background: fill, borderRadius: 2 }} />
@@ -162,9 +181,9 @@ function SquadRow({ squad, idx }: { squad: Squad; idx: number }) {
       ...rowStyle,
       opacity: isDead ? 0.45 : 1,
       paddingTop: 4, paddingBottom: 4,
-      borderBottom: '1px solid #081420',
+      borderBottom: `1px solid ${BF4.rowBorder}`,
     }}>
-      <span style={{ color: '#3b82f6', fontWeight: 700, minWidth: 20 }}>
+      <span style={{ color: BF4.blue, fontWeight: 700, minWidth: 20 }}>
         B{idx + 1}
       </span>
 
@@ -178,10 +197,10 @@ function SquadRow({ squad, idx }: { squad: Squad; idx: number }) {
 
       {isDead ? (
         <>
-          <div style={{ ...hpBarTrack, background: '#1a0a0a' }}>
-            <div style={{ width: `${respawnPct * 100}%`, height: '100%', background: '#7f1d1d', borderRadius: 2 }} />
+          <div style={{ ...hpBarTrack, background: '#120800' }}>
+            <div style={{ width: `${respawnPct * 100}%`, height: '100%', background: BF4.redDim, borderRadius: 2 }} />
           </div>
-          <span style={{ color: '#7f1d1d', minWidth: 28, textAlign: 'right', fontSize: 10 }}>
+          <span style={{ color: BF4.redDim, minWidth: 28, textAlign: 'right', fontSize: 10 }}>
             {Math.ceil(squad.respawnTimer)}s
           </span>
         </>
@@ -213,17 +232,17 @@ function DefaultPanel({ state }: { state: GameState }) {
       <div style={sectionTitle}>Esquadrões Aliados</div>
       {blue.map((sq, i) => <SquadRow key={sq.id} squad={sq} idx={i} />)}
 
-      <div style={{ ...sectionTitle, color: '#4a2020', marginTop: 4 }}>Intel Inimiga</div>
+      <div style={{ ...sectionTitle, color: BF4.redDim, marginTop: 4 }}>Intel Inimiga</div>
       <div style={{ ...rowStyle, justifyContent: 'space-between', padding: '5px 12px' }}>
-        <span style={{ color: '#2d4f6a' }}>Ativos</span>
-        <span style={{ color: redAlive > 0 ? '#ef4444' : '#374151', fontWeight: 700 }}>
+        <span style={{ color: BF4.textDim }}>Ativos</span>
+        <span style={{ color: redAlive > 0 ? BF4.red : '#2a3a4a', fontWeight: 700 }}>
           {redAlive} / {red.length}
         </span>
       </div>
       {redDead.length > 0 && (
         <div style={{ ...rowStyle, justifyContent: 'space-between', padding: '2px 12px 5px' }}>
           <span style={{ color: '#2d4f6a' }}>Reforços</span>
-          <span style={{ color: '#f97316', fontSize: 10 }}>
+          <span style={{ color: BF4.cooldown, fontSize: 10 }}>
             {redDead.length} em {Math.ceil(nextRespawn)}s
           </span>
         </div>
@@ -266,7 +285,7 @@ function SquadContextPanel({ squad, state, fireAbilityAt }: {
 
       <div style={{ ...rowStyle, justifyContent: 'space-between', padding: '5px 12px' }}>
         <span>Soldados</span>
-        <span style={{ color: aliveSol > 2 ? '#22c55e' : aliveSol > 1 ? '#f59e0b' : '#ef4444', fontWeight: 700 }}>
+        <span style={{ color: aliveSol > 2 ? '#00BF44' : aliveSol > 1 ? BF4.cooldown : BF4.red, fontWeight: 700 }}>
           {aliveSol} / 4
         </span>
       </div>
@@ -282,7 +301,7 @@ function SquadContextPanel({ squad, state, fireAbilityAt }: {
       </div>
 
       {squad.suppressedTimer > 0 && (
-        <div style={{ ...rowStyle, color: '#a855f7', fontSize: 10, padding: '2px 12px 6px' }}>
+        <div style={{ ...rowStyle, color: BF4.suppress, fontSize: 10, padding: '2px 12px 6px' }}>
           ⚡ Suprimido {Math.ceil(squad.suppressedTimer)}s
         </div>
       )}
@@ -299,7 +318,7 @@ function CPContextPanel({ cp, state, fireAbilityAt }: {
   cp: ControlPoint; state: GameState; fireAbilityAt: (id: AbilityId, pos: Vec2) => void
 }) {
   const ownerLabel = cp.owner === 'neutral' ? 'NEUTRO' : cp.owner === 'blue' ? 'ALIADO' : 'INIMIGO'
-  const ownerColor = cp.owner === 'neutral' ? '#f97316' : cp.owner === 'blue' ? '#3b82f6' : '#ef4444'
+  const ownerColor = cp.owner === 'neutral' ? BF4.neutral : cp.owner === 'blue' ? BF4.blue : BF4.red
 
   return (
     <>
@@ -348,7 +367,7 @@ function BaseContextPanel({ team, state }: {
   team: 'blue' | 'red'; state: GameState
 }) {
   const isBlue   = team === 'blue'
-  const color    = isBlue ? '#3b82f6' : '#ef4444'
+  const color    = isBlue ? BF4.blue : BF4.red
   const label    = isBlue ? 'BASE ALIADA' : 'BASE INIMIGA'
   const squads   = state.squads.filter(s => s.team === team)
   const alive    = squads.filter(s => s.status !== 'dead')
@@ -394,7 +413,7 @@ function BaseContextPanel({ team, state }: {
                 <div style={{
                   width: `${(1 - s.respawnTimer / SQUAD_RESPAWN_TIME) * 100}%`,
                   height: '100%',
-                  background: isBlue ? '#1e3a5f' : '#5f1e1e',
+                  background: isBlue ? BF4.blueDim : BF4.redDim,
                   borderRadius: 2,
                 }} />
               </div>

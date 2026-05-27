@@ -13,36 +13,37 @@ function formatTime(seconds: number): string {
 }
 
 // ── Ticket bar ─────────────────────────────────────────────────────────────
+// BF4 palette: US = #00C8FF, CN = #FF6633
 
 interface TicketBarProps {
   tickets: number
-  max: number
-  team: 'blue' | 'red'
-  label: string
-  locked: boolean   // true while min game time has not been reached
+  max:     number
+  team:    'blue' | 'red'
+  label:   string
+  locked:  boolean
 }
 
 function TicketBar({ tickets, max, team, label, locked }: TicketBarProps) {
-  const pct   = Math.max(0, tickets / max) * 100
-  const color = team === 'blue' ? '#3b82f6' : '#ef4444'
+  const pct = Math.max(0, tickets / max) * 100
 
-  // When locked: desaturate. When live: warn as tickets get low.
+  const baseColor = team === 'blue' ? '#00C8FF' : '#FF6633'
   const fillColor = locked
-    ? '#4b5563'
-    : pct < 10 ? '#ef4444' : pct < 25 ? '#f59e0b' : color
-
-  const labelColor = locked ? '#475569' : fillColor
+    ? '#2a3a4a'
+    : pct < 10  ? '#FF6633'
+    : pct < 25  ? '#FFCC00'
+    : baseColor
+  const labelColor = locked ? '#2e4557' : fillColor
 
   return (
     <div className={styles.ticketGroup}>
       <span className={styles.ticketLabel} style={{ color: labelColor }}>
-        {locked ? '🔒 ' : ''}{label}
+        {locked ? '🔒' : team === 'blue' ? 'US' : 'CN'}
       </span>
       <div className={`${styles.ticketBarWrap} ${locked ? styles.ticketBarLocked : ''}`}>
         <div
           className={styles.ticketBar}
           style={{
-            width: `${pct}%`,
+            width:      `${pct}%`,
             background: fillColor,
             marginLeft: team === 'red' ? 'auto' : undefined,
           }}
@@ -52,6 +53,28 @@ function TicketBar({ tickets, max, team, label, locked }: TicketBarProps) {
         {Math.ceil(tickets)}
       </span>
     </div>
+  )
+}
+
+// ── CP letter badge ────────────────────────────────────────────────────────
+
+function CPBadge({ label, owner, capturing }: {
+  label: string; owner: string; capturing?: string | null
+}) {
+  const isBlue    = owner === 'blue'
+  const isRed     = owner === 'red'
+  const isCapture = !!capturing
+
+  const bg    = isBlue ? '#003a5e' : isRed ? '#4a1400' : '#1e1e2e'
+  const color = isBlue ? '#00C8FF' : isRed ? '#FF6633' : '#555880'
+  const border = isCapture
+    ? `1px solid ${capturing === 'blue' ? '#00C8FF88' : '#FF663388'}`
+    : `1px solid ${color}44`
+
+  return (
+    <span className={styles.cpBadge} style={{ background: bg, color, border }}>
+      {label[0]}
+    </span>
   )
 }
 
@@ -67,49 +90,47 @@ export default function HUD({ state, onRestart }: Props) {
 
   return (
     <div className={styles.hud}>
-      {/* Timer */}
+
+      {/* ── Timer ── */}
       <div className={styles.section}>
-        <span className={styles.timerIcon}>⏱</span>
         <span className={styles.timer}>{formatTime(state.elapsed)}</span>
       </div>
 
-      {/* Blue tickets */}
+      {/* ── US Tickets ── */}
       <TicketBar
-        tickets={state.blueTickets}
-        max={state.ticketsMax}
-        team="blue"
-        label="ALIADOS"
-        locked={locked}
+        tickets={state.blueTickets} max={state.ticketsMax}
+        team="blue" label="US" locked={locked}
       />
 
-      {/* CP score */}
+      {/* ── CP status bar ── */}
       <div className={styles.cpScore}>
         <span className={styles.blueScore}>{blueCPs}</span>
-        <span className={styles.cpDots}>
+        <div className={styles.cpBadges}>
           {state.controlPoints.map(cp => (
-            <span key={cp.id} className={`${styles.cpDot} ${styles[cp.owner]}`} title={cp.label} />
+            <CPBadge
+              key={cp.id}
+              label={cp.label}
+              owner={cp.owner}
+              capturing={cp.cappingTeam}
+            />
           ))}
-        </span>
+        </div>
         <span className={styles.redScore}>{redCPs}</span>
       </div>
 
-      {/* Red tickets */}
+      {/* ── CN Tickets ── */}
       <TicketBar
-        tickets={state.redTickets}
-        max={state.ticketsMax}
-        team="red"
-        label="INIMIGOS"
-        locked={locked}
+        tickets={state.redTickets} max={state.ticketsMax}
+        team="red" label="CN" locked={locked}
       />
 
-      {/* Remaining lock time — compact, só enquanto travado */}
       {locked && (
-        <div className={styles.lockTimer} title="Tickets só encerraram a partida após o tempo mínimo">
+        <div className={styles.lockTimer} title="Tickets só encerram após o tempo mínimo">
           unlock {formatTime(timeLeft)}
         </div>
       )}
 
-      {/* Commander Points bar */}
+      {/* ── Commander Points ── */}
       <div className={styles.cpSection}>
         <span className={styles.cpLabel}>CMD</span>
         <div className={styles.cpBarWrap}>
@@ -118,17 +139,17 @@ export default function HUD({ state, onRestart }: Props) {
         <span className={styles.cpValue}>{Math.floor(state.commanderPoints)}</span>
       </div>
 
-      {/* UAV status */}
+      {/* ── UAV active ── */}
       {state.uavActive && (
         <div className={styles.uavBadge}>📡 UAV {Math.ceil(state.uavTimer)}s</div>
       )}
 
-      {/* Pending ability hint */}
+      {/* ── Pending ability hint ── */}
       {state.pendingAbility && (
-        <div className={styles.hint}>Clique no mapa para ativar</div>
+        <div className={styles.hint}>Clique no mapa · ESC cancela</div>
       )}
 
-      {/* Restart (shown after game over) */}
+      {/* ── Restart button ── */}
       {state.phase !== 'playing' && (
         <button className={styles.restartBtn} onClick={onRestart}>↺ RESTART</button>
       )}
