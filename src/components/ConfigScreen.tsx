@@ -12,156 +12,125 @@ const C = {
   blueDim: '#0065CC',
   blueBg:  '#03101a',
   red:     '#FF6633',
-  redBg:   '#1a0800',
   neutral: '#555880',
   cooldown:'#FFCC00',
+  green:   '#00BF44',
   text:    '#7a9ab5',
   textDim: '#2e4a5e',
   border:  '#0e2035',
   panelBg: '#070e18',
   cardBg:  '#050c16',
 }
-
 const mono = "'Courier New', Courier, monospace"
 
-// ── Generic sub-components ─────────────────────────────────────────────────
-
-function SectionLabel({ children }: { children: string }) {
-  return (
-    <div style={{
-      fontSize: 8, fontWeight: 900, letterSpacing: '3px',
-      color: C.textDim, fontFamily: mono,
-      borderBottom: `1px solid ${C.border}`,
-      paddingBottom: 6, marginBottom: 14,
-      textTransform: 'uppercase',
-    }}>
-      {children}
-    </div>
-  )
-}
+// ── Reusable: group of toggle buttons ─────────────────────────────────────
 
 interface BtnGroupOption<T> { value: T; label: string; sub?: string }
-interface BtnGroupProps<T> {
-  options: BtnGroupOption<T>[]
-  value:   T
-  onChange: (v: T) => void
-  color?:  string
-}
 
-function BtnGroup<T extends string | number>({ options, value, onChange, color = C.blue }: BtnGroupProps<T>) {
+function BtnGroup<T extends string | number>({
+  label, options, value, onChange, color = C.blue,
+}: {
+  label: string
+  options: BtnGroupOption<T>[]
+  value: T
+  onChange: (v: T) => void
+  color?: string
+}) {
   return (
-    <div style={{ display: 'flex', gap: 6 }}>
-      {options.map(opt => {
-        const active = opt.value === value
-        return (
-          <button
-            key={String(opt.value)}
-            onClick={() => onChange(opt.value)}
-            style={{
-              flex: 1,
-              padding: opt.sub ? '8px 4px 7px' : '9px 4px',
-              background: active ? color + '18' : C.cardBg,
-              border: `1px solid ${active ? color : C.border}`,
-              borderRadius: 3,
-              color: active ? color : C.textDim,
-              fontFamily: mono,
-              fontSize: 11,
-              fontWeight: 700,
-              cursor: 'pointer',
-              letterSpacing: '0.5px',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-              boxShadow: active ? `0 0 8px ${color}22` : 'none',
-              transition: 'all 0.12s',
-            }}
-          >
-            <span>{opt.label}</span>
-            {opt.sub && (
-              <span style={{ fontSize: 8, fontWeight: 400, opacity: 0.6, letterSpacing: 0 }}>
-                {opt.sub}
-              </span>
-            )}
-          </button>
-        )
-      })}
+    <div>
+      <div style={{
+        fontSize: 8, fontWeight: 900, letterSpacing: '2px',
+        color: C.textDim, fontFamily: mono,
+        marginBottom: 6, textTransform: 'uppercase',
+      }}>
+        {label}
+      </div>
+      <div style={{ display: 'flex', gap: 5 }}>
+        {options.map(opt => {
+          const active = opt.value === value
+          return (
+            <button
+              key={String(opt.value)}
+              onClick={() => onChange(opt.value)}
+              style={{
+                flex: 1,
+                padding: opt.sub ? '6px 4px 5px' : '7px 4px',
+                background: active ? color + '18' : C.cardBg,
+                border: `1px solid ${active ? color : C.border}`,
+                borderRadius: 3,
+                color: active ? color : C.textDim,
+                fontFamily: mono,
+                fontSize: 10,
+                fontWeight: 700,
+                cursor: 'pointer',
+                letterSpacing: '0.5px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 1,
+                boxShadow: active ? `0 0 6px ${color}22` : 'none',
+                transition: 'all 0.1s',
+              }}
+            >
+              <span>{opt.label}</span>
+              {opt.sub && (
+                <span style={{ fontSize: 7, fontWeight: 400, opacity: 0.55, letterSpacing: 0 }}>
+                  {opt.sub}
+                </span>
+              )}
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }
 
-interface SliderRowProps {
-  label: string; value: number; min: number; max: number
-  onChange: (v: number) => void; color: string
-}
+// ── Compact squad slider ───────────────────────────────────────────────────
 
-function SliderRow({ label, value, min, max, onChange, color }: SliderRowProps) {
-  const pips = Array.from({ length: max - min + 1 }, (_, i) => i + min)
+function SquadSlider({
+  label, value, onChange, color,
+}: {
+  label: string; value: number; onChange: (v: number) => void; color: string
+}) {
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
-        <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '2px', color: C.textDim, fontFamily: mono }}>
+    <div style={{ flex: 1 }}>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+        marginBottom: 4,
+      }}>
+        <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: '1.5px', color: C.textDim, fontFamily: mono }}>
           {label}
         </span>
-        <span style={{ fontSize: 26, fontWeight: 900, color, fontFamily: mono, lineHeight: 1 }}>
+        <span style={{ fontSize: 22, fontWeight: 900, color, fontFamily: mono, lineHeight: 1 }}>
           {value}
         </span>
       </div>
       <input
-        type="range" min={min} max={max} step={1} value={value}
+        type="range" min={2} max={6} step={1} value={value}
         onChange={e => onChange(Number(e.target.value))}
-        style={{ width: '100%', accentColor: color, cursor: 'pointer', height: 4 }}
+        style={{ width: '100%', accentColor: color, cursor: 'pointer', height: 3 }}
       />
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-        {pips.map(n => (
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 3 }}>
+        {[2, 3, 4, 5, 6].map(n => (
           <span key={n} style={{
-            fontSize: 9, fontFamily: mono,
+            fontSize: 8, fontFamily: mono,
             color: n === value ? color : C.textDim,
             fontWeight: n === value ? 700 : 400,
-          }}>
-            {n}
-          </span>
+          }}>{n}</span>
         ))}
       </div>
     </div>
   )
 }
 
-// ── Difficulty descriptions ────────────────────────────────────────────────
+// ── Difficulty & CP helpers ───────────────────────────────────────────────
 
-const DIFF_INFO: Record<Difficulty, { label: string; sub: string; color: string }> = {
-  easy:   { label: 'FÁCIL',   sub: 'lento',  color: '#00BF44' },
-  normal: { label: 'NORMAL',  sub: 'padrão', color: C.blue    },
-  hard:   { label: 'DIFÍCIL', sub: 'brutal', color: C.red     },
+const DIFF_COLOR: Record<Difficulty, string> = {
+  easy: C.green, normal: C.blue, hard: C.red,
 }
 
-// ── CP count descriptions ─────────────────────────────────────────────────
-
-const CP_INFO: Record<number, { label: string; sub: string }> = {
-  1: { label: '1', sub: 'rei-do-morro' },
-  3: { label: '3', sub: 'clássico'     },
-  5: { label: '5', sub: 'flancos'      },
-}
-
-// ── Ticket options ────────────────────────────────────────────────────────
-
-const TICKET_OPTIONS = [100, 150, 200, 250, 300]
-
-// ── Summary row ───────────────────────────────────────────────────────────
-
-function StatChip({ color, label, value }: { color: string; label: string; value: string | number }) {
-  return (
-    <div style={{
-      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-      padding: '6px 12px',
-      background: color + '10',
-      border: `1px solid ${color}44`,
-      borderRadius: 3,
-    }}>
-      <span style={{ fontSize: 14, fontWeight: 900, color, fontFamily: mono }}>{value}</span>
-      <span style={{ fontSize: 8, color: C.textDim, fontFamily: mono, letterSpacing: '1px' }}>{label}</span>
-    </div>
-  )
-}
-
-// ── Main screen ───────────────────────────────────────────────────────────
+// ── Main ──────────────────────────────────────────────────────────────────
 
 export default function ConfigScreen({ onStart }: Props) {
   const [blueSquads,     setBlueSquads]     = useState(4)
@@ -170,18 +139,14 @@ export default function ConfigScreen({ onStart }: Props) {
   const [initialTickets, setInitialTickets] = useState(200)
   const [difficulty,     setDifficulty]     = useState<Difficulty>('normal')
 
-  const diffColor = DIFF_INFO[difficulty].color
-
-  const handleStart = () => {
-    onStart({ blueSquads, redSquads, cpCount, initialTickets, difficulty })
-  }
+  const diffColor = DIFF_COLOR[difficulty]
 
   const card: CSSProperties = {
     background: C.panelBg,
     border: `1px solid ${C.border}`,
     borderRadius: 4,
-    padding: '18px 20px',
-    marginBottom: 12,
+    padding: '14px 16px',
+    marginBottom: 8,
   }
 
   return (
@@ -194,149 +159,164 @@ export default function ConfigScreen({ onStart }: Props) {
       justifyContent: 'center',
       fontFamily: mono,
       color: C.text,
-      padding: '24px 0',
+      padding: '16px 0',
     }}>
 
       {/* ── Header ── */}
-      <div style={{ textAlign: 'center', marginBottom: 28 }}>
-        <div style={{ fontSize: 9, letterSpacing: '6px', color: C.textDim, marginBottom: 8 }}>
+      <div style={{ textAlign: 'center', marginBottom: 20 }}>
+        <div style={{ fontSize: 8, letterSpacing: '6px', color: C.textDim, marginBottom: 6 }}>
           BATTLEFIELD 4
         </div>
         <h1 style={{
-          fontSize: 36, fontWeight: 900, margin: 0,
+          fontSize: 30, fontWeight: 900, margin: 0,
           color: C.blue, letterSpacing: 4,
-          textShadow: `0 0 28px ${C.blue}55`,
+          textShadow: `0 0 22px ${C.blue}44`,
           fontFamily: mono,
         }}>
           ◈ COMMANDER MODE
         </h1>
-        <div style={{ fontSize: 10, color: C.textDim, marginTop: 8, letterSpacing: '3px' }}>
+        <div style={{ fontSize: 8, color: C.textDim, marginTop: 5, letterSpacing: '3px' }}>
           CONFIGURE SUA MISSÃO
         </div>
       </div>
 
-      {/* ── Config panel ── */}
-      <div style={{ width: 440 }}>
+      <div style={{ width: 480 }}>
 
-        {/* — Forças — */}
+        {/* ── Forças — two sliders side by side ── */}
         <div style={card}>
-          <SectionLabel>Forças</SectionLabel>
-          <SliderRow
-            label="SQUADS ALIADOS (US)"
-            value={blueSquads} min={2} max={6}
-            onChange={setBlueSquads} color={C.blue}
-          />
-          <div style={{ height: 18 }} />
-          <SliderRow
-            label="SQUADS INIMIGOS (CN)"
-            value={redSquads} min={2} max={6}
-            onChange={setRedSquads} color={C.red}
-          />
-        </div>
-
-        {/* — Mapa — */}
-        <div style={card}>
-          <SectionLabel>Pontos de Controle</SectionLabel>
-          <BtnGroup
-            options={([1, 3, 5] as (1 | 3 | 5)[]).map(n => ({
-              value: n,
-              label: CP_INFO[n].label,
-              sub:   CP_INFO[n].sub,
-            }))}
-            value={cpCount}
-            onChange={setCpCount}
-            color={C.neutral}
-          />
-        </div>
-
-        {/* — Partida — */}
-        <div style={card}>
-          <SectionLabel>Configurações da Partida</SectionLabel>
-
-          {/* Tickets */}
-          <div style={{ marginBottom: 16 }}>
-            <div style={{
-              fontSize: 9, fontWeight: 700, letterSpacing: '2px',
-              color: C.textDim, marginBottom: 8,
-            }}>
-              TICKETS INICIAIS
-            </div>
-            <BtnGroup
-              options={TICKET_OPTIONS.map(n => ({ value: n, label: String(n) }))}
-              value={initialTickets}
-              onChange={setInitialTickets}
-              color={C.cooldown}
-            />
+          <div style={{
+            fontSize: 8, fontWeight: 900, letterSpacing: '2px',
+            color: C.textDim, fontFamily: mono,
+            borderBottom: `1px solid ${C.border}`,
+            paddingBottom: 8, marginBottom: 12,
+            textTransform: 'uppercase',
+          }}>
+            Forças
           </div>
-
-          {/* Difficulty */}
-          <div>
-            <div style={{
-              fontSize: 9, fontWeight: 700, letterSpacing: '2px',
-              color: C.textDim, marginBottom: 8,
-            }}>
-              DIFICULDADE DA IA
-            </div>
-            <BtnGroup
-              options={(['easy', 'normal', 'hard'] as Difficulty[]).map(d => ({
-                value: d,
-                label: DIFF_INFO[d].label,
-                sub:   DIFF_INFO[d].sub,
-              }))}
-              value={difficulty}
-              onChange={setDifficulty}
-              color={diffColor}
-            />
+          <div style={{ display: 'flex', gap: 20 }}>
+            <SquadSlider label="ALIADOS (US)" value={blueSquads} onChange={setBlueSquads} color={C.blue} />
+            <SquadSlider label="INIMIGOS (CN)" value={redSquads}  onChange={setRedSquads}  color={C.red}  />
           </div>
         </div>
 
-        {/* — Summary chips — */}
+        {/* ── Options — three groups in one row ── */}
+        <div style={card}>
+          <div style={{
+            fontSize: 8, fontWeight: 900, letterSpacing: '2px',
+            color: C.textDim, fontFamily: mono,
+            borderBottom: `1px solid ${C.border}`,
+            paddingBottom: 8, marginBottom: 12,
+            textTransform: 'uppercase',
+          }}>
+            Mapa &amp; Partida
+          </div>
+          <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+
+            {/* CP count */}
+            <div style={{ flex: '0 0 auto', width: 100 }}>
+              <BtnGroup
+                label="Pontos de controle"
+                options={([1, 3, 5] as (1|3|5)[]).map(n => ({
+                  value: n,
+                  label: String(n),
+                  sub: n === 1 ? 'centro' : n === 3 ? 'clássico' : 'flancos',
+                }))}
+                value={cpCount}
+                onChange={setCpCount}
+                color={C.neutral}
+              />
+            </div>
+
+            {/* Tickets */}
+            <div style={{ flex: 1 }}>
+              <BtnGroup
+                label="Tickets iniciais"
+                options={[100, 150, 200, 250, 300].map(n => ({ value: n, label: String(n) }))}
+                value={initialTickets}
+                onChange={setInitialTickets}
+                color={C.cooldown}
+              />
+            </div>
+
+            {/* Difficulty */}
+            <div style={{ flex: '0 0 auto', width: 145 }}>
+              <BtnGroup
+                label="Dificuldade da IA"
+                options={[
+                  { value: 'easy'   as Difficulty, label: 'FÁCIL',   sub: 'lento'  },
+                  { value: 'normal' as Difficulty, label: 'NORMAL',  sub: 'padrão' },
+                  { value: 'hard'   as Difficulty, label: 'DIFÍCIL', sub: 'brutal' },
+                ]}
+                value={difficulty}
+                onChange={setDifficulty}
+                color={diffColor}
+              />
+            </div>
+
+          </div>
+        </div>
+
+        {/* ── Summary + Start ── */}
         <div style={{
-          display: 'flex', gap: 8, justifyContent: 'center',
-          marginBottom: 14, flexWrap: 'wrap',
+          display: 'flex', alignItems: 'center', gap: 8,
         }}>
-          <StatChip color={C.blue}    label="ALIADOS"  value={blueSquads} />
-          <StatChip color={C.red}     label="INIMIGOS" value={redSquads} />
-          <StatChip color={C.neutral} label="PONTOS"   value={cpCount} />
-          <StatChip color={C.cooldown} label="TICKETS" value={initialTickets} />
-          <StatChip color={diffColor} label="DIFICUL." value={DIFF_INFO[difficulty].label} />
+          {/* Mini summary chips */}
+          {[
+            { color: C.blue,    val: blueSquads,     label: 'US'  },
+            { color: C.red,     val: redSquads,       label: 'CN'  },
+            { color: C.neutral, val: `${cpCount} CP`, label: 'map' },
+            { color: C.cooldown,val: initialTickets,  label: 'tkts'},
+            { color: diffColor, val: difficulty[0].toUpperCase(), label: 'dif' },
+          ].map(({ color, val, label }) => (
+            <div key={label} style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              padding: '5px 8px',
+              background: color + '12',
+              border: `1px solid ${color}40`,
+              borderRadius: 3,
+              minWidth: 40,
+            }}>
+              <span style={{ fontSize: 13, fontWeight: 900, color, fontFamily: mono, lineHeight: 1 }}>{val}</span>
+              <span style={{ fontSize: 7, color: C.textDim, fontFamily: mono, marginTop: 2 }}>{label}</span>
+            </div>
+          ))}
+
+          {/* Start button — takes remaining space */}
+          <button
+            onClick={() => onStart({ blueSquads, redSquads, cpCount, initialTickets, difficulty })}
+            style={{
+              flex: 1,
+              padding: '12px 0',
+              background: `linear-gradient(135deg, ${C.blueDim}cc, ${C.blue}88)`,
+              border: `1px solid ${C.blue}`,
+              borderRadius: 3,
+              color: '#e8f8ff',
+              fontSize: 12,
+              fontWeight: 900,
+              letterSpacing: '3px',
+              cursor: 'pointer',
+              fontFamily: mono,
+              boxShadow: `0 0 16px ${C.blue}22`,
+              transition: 'all 0.12s',
+            }}
+            onMouseEnter={e => {
+              const b = e.currentTarget
+              b.style.background = C.blue
+              b.style.boxShadow  = `0 0 24px ${C.blue}55`
+            }}
+            onMouseLeave={e => {
+              const b = e.currentTarget
+              b.style.background = `linear-gradient(135deg, ${C.blueDim}cc, ${C.blue}88)`
+              b.style.boxShadow  = `0 0 16px ${C.blue}22`
+            }}
+          >
+            ▶ INICIAR MISSÃO
+          </button>
         </div>
 
-        {/* — Start button — */}
-        <button
-          onClick={handleStart}
-          style={{
-            width: '100%',
-            padding: '14px 0',
-            background: `linear-gradient(135deg, ${C.blueDim}cc, ${C.blue}88)`,
-            border: `1px solid ${C.blue}`,
-            borderRadius: 3,
-            color: '#e8f8ff',
-            fontSize: 14, fontWeight: 900,
-            letterSpacing: '4px', cursor: 'pointer',
-            fontFamily: mono,
-            boxShadow: `0 0 20px ${C.blue}22`,
-            transition: 'all 0.15s',
-          }}
-          onMouseEnter={e => {
-            const btn = e.currentTarget
-            btn.style.background = `linear-gradient(135deg, ${C.blue}cc, ${C.blue})`
-            btn.style.boxShadow  = `0 0 30px ${C.blue}44`
-          }}
-          onMouseLeave={e => {
-            const btn = e.currentTarget
-            btn.style.background = `linear-gradient(135deg, ${C.blueDim}cc, ${C.blue}88)`
-            btn.style.boxShadow  = `0 0 20px ${C.blue}22`
-          }}
-        >
-          ▶ INICIAR MISSÃO
-        </button>
-
-      </div>
-
-      {/* Footer */}
-      <div style={{ marginTop: 20, fontSize: 9, color: C.textDim, letterSpacing: '2px' }}>
-        IA ADAPTATIVA · PRESSÃO DE TICKETS · FOG OF WAR · KEYBINDS Q W E R A S
+        <div style={{ marginTop: 10, fontSize: 8, color: C.textDim, letterSpacing: '2px', textAlign: 'center' }}>
+          IA ADAPTATIVA · FOG OF WAR · KEYBINDS Q W E R A S
+        </div>
       </div>
     </div>
   )
