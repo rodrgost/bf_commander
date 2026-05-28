@@ -8,6 +8,10 @@
   min-height: 42px;
   flex-wrap: wrap;
   flex-shrink: 0;
+  /* Stick to top of viewport on short screens */
+  position: sticky;
+  top: 0;
+  z-index: 20;
 }
 
 /* ── Timer ── */
