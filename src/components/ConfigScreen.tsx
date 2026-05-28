@@ -1,163 +1,342 @@
 import { useState } from 'react'
-import type { GameConfig } from '../types'
+import type { CSSProperties } from 'react'
+import type { GameConfig, Difficulty } from '../types'
 
 interface Props {
   onStart: (config: GameConfig) => void
 }
 
-export default function ConfigScreen({ onStart }: Props) {
-  const [blueSquads, setBlueSquads] = useState(4)
-  const [redSquads,  setRedSquads]  = useState(4)
+// ── BF4 colour tokens ─────────────────────────────────────────────────────
+const C = {
+  blue:    '#00C8FF',
+  blueDim: '#0065CC',
+  blueBg:  '#03101a',
+  red:     '#FF6633',
+  redBg:   '#1a0800',
+  neutral: '#555880',
+  cooldown:'#FFCC00',
+  text:    '#7a9ab5',
+  textDim: '#2e4a5e',
+  border:  '#0e2035',
+  panelBg: '#070e18',
+  cardBg:  '#050c16',
+}
 
-  const handleStart = () => {
-    onStart({ blueSquads, redSquads })
-  }
+const mono = "'Courier New', Courier, monospace"
 
+// ── Generic sub-components ─────────────────────────────────────────────────
+
+function SectionLabel({ children }: { children: string }) {
   return (
     <div style={{
-      minHeight: '100vh',
-      background: '#0a0f0a',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontFamily: "'Segoe UI', monospace",
-      color: '#e2e8f0',
+      fontSize: 8, fontWeight: 900, letterSpacing: '3px',
+      color: C.textDim, fontFamily: mono,
+      borderBottom: `1px solid ${C.border}`,
+      paddingBottom: 6, marginBottom: 14,
+      textTransform: 'uppercase',
     }}>
-      {/* Logo */}
-      <div style={{ textAlign: 'center', marginBottom: 48 }}>
-        <div style={{ fontSize: 11, letterSpacing: 6, color: '#64748b', marginBottom: 8 }}>
-          BATTLEFIELD 4
-        </div>
-        <h1 style={{
-          fontSize: 42, fontWeight: 900, margin: 0,
-          color: '#60a5fa', letterSpacing: 3,
-          textShadow: '0 0 30px rgba(96,165,250,0.4)',
-        }}>
-          ◈ COMMANDER MODE
-        </h1>
-        <div style={{ fontSize: 13, color: '#475569', marginTop: 8, letterSpacing: 2 }}>
-          CONFIGURE SUA MISSÃO
-        </div>
-      </div>
+      {children}
+    </div>
+  )
+}
 
-      {/* Config panel */}
-      <div style={{
-        background: '#111827',
-        border: '1px solid #1e3a5f',
-        borderRadius: 12,
-        padding: '36px 48px',
-        minWidth: 380,
-        boxShadow: '0 4px 32px rgba(0,0,0,0.6)',
-      }}>
-        <SliderRow
-          label="SQUADS ALIADOS"
-          value={blueSquads}
-          onChange={setBlueSquads}
-          color="#3b82f6"
-          accentColor="#60a5fa"
-        />
+interface BtnGroupOption<T> { value: T; label: string; sub?: string }
+interface BtnGroupProps<T> {
+  options: BtnGroupOption<T>[]
+  value:   T
+  onChange: (v: T) => void
+  color?:  string
+}
 
-        <div style={{ height: 28 }} />
-
-        <SliderRow
-          label="SQUADS INIMIGOS"
-          value={redSquads}
-          onChange={setRedSquads}
-          color="#ef4444"
-          accentColor="#f87171"
-        />
-
-        <div style={{ height: 40 }} />
-
-        {/* Summary */}
-        <div style={{
-          display: 'flex', justifyContent: 'space-between',
-          marginBottom: 32, padding: '10px 14px',
-          background: '#0f172a', borderRadius: 8,
-          border: '1px solid #1e293b',
-          fontSize: 12, color: '#64748b',
-        }}>
-          <span style={{ color: '#60a5fa', fontWeight: 700 }}>
-            {blueSquads} × ALIADOS
-          </span>
-          <span style={{ color: '#94a3b8' }}>vs</span>
-          <span style={{ color: '#f87171', fontWeight: 700 }}>
-            {redSquads} × INIMIGOS
-          </span>
-        </div>
-
-        <button
-          onClick={handleStart}
-          style={{
-            width: '100%',
-            padding: '14px 0',
-            background: 'linear-gradient(135deg, #1e3a5f, #2563eb)',
-            border: '2px solid #3b82f6',
-            borderRadius: 8,
-            color: '#e0f2fe',
-            fontSize: 15, fontWeight: 800,
-            letterSpacing: 3, cursor: 'pointer',
-            transition: 'all 0.15s',
-          }}
-          onMouseEnter={e => {
-            (e.target as HTMLButtonElement).style.background = 'linear-gradient(135deg, #2563eb, #3b82f6)'
-            ;(e.target as HTMLButtonElement).style.color = '#ffffff'
-          }}
-          onMouseLeave={e => {
-            (e.target as HTMLButtonElement).style.background = 'linear-gradient(135deg, #1e3a5f, #2563eb)'
-            ;(e.target as HTMLButtonElement).style.color = '#e0f2fe'
-          }}
-        >
-          INICIAR MISSÃO
-        </button>
-      </div>
-
-      {/* Footer hint */}
-      <div style={{ marginTop: 24, fontSize: 11, color: '#334155', letterSpacing: 1 }}>
-        IA VERMELHA ADAPTATIVA · PRESSÃO POR TICKETS · FOG OF WAR
-      </div>
+function BtnGroup<T extends string | number>({ options, value, onChange, color = C.blue }: BtnGroupProps<T>) {
+  return (
+    <div style={{ display: 'flex', gap: 6 }}>
+      {options.map(opt => {
+        const active = opt.value === value
+        return (
+          <button
+            key={String(opt.value)}
+            onClick={() => onChange(opt.value)}
+            style={{
+              flex: 1,
+              padding: opt.sub ? '8px 4px 7px' : '9px 4px',
+              background: active ? color + '18' : C.cardBg,
+              border: `1px solid ${active ? color : C.border}`,
+              borderRadius: 3,
+              color: active ? color : C.textDim,
+              fontFamily: mono,
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: 'pointer',
+              letterSpacing: '0.5px',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+              boxShadow: active ? `0 0 8px ${color}22` : 'none',
+              transition: 'all 0.12s',
+            }}
+          >
+            <span>{opt.label}</span>
+            {opt.sub && (
+              <span style={{ fontSize: 8, fontWeight: 400, opacity: 0.6, letterSpacing: 0 }}>
+                {opt.sub}
+              </span>
+            )}
+          </button>
+        )
+      })}
     </div>
   )
 }
 
 interface SliderRowProps {
-  label: string
-  value: number
-  onChange: (v: number) => void
-  color: string
-  accentColor: string
+  label: string; value: number; min: number; max: number
+  onChange: (v: number) => void; color: string
 }
 
-function SliderRow({ label, value, onChange, color, accentColor }: SliderRowProps) {
-  const pips = [2, 3, 4, 5, 6]
+function SliderRow({ label, value, min, max, onChange, color }: SliderRowProps) {
+  const pips = Array.from({ length: max - min + 1 }, (_, i) => i + min)
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
-        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 2, color: '#64748b' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+        <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '2px', color: C.textDim, fontFamily: mono }}>
           {label}
         </span>
-        <span style={{ fontSize: 28, fontWeight: 900, color: accentColor, lineHeight: 1 }}>
+        <span style={{ fontSize: 26, fontWeight: 900, color, fontFamily: mono, lineHeight: 1 }}>
           {value}
         </span>
       </div>
-
       <input
-        type="range" min={2} max={6} step={1} value={value}
+        type="range" min={min} max={max} step={1} value={value}
         onChange={e => onChange(Number(e.target.value))}
         style={{ width: '100%', accentColor: color, cursor: 'pointer', height: 4 }}
       />
-
-      {/* Pip labels */}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
         {pips.map(n => (
           <span key={n} style={{
-            fontSize: 9, color: n === value ? accentColor : '#334155',
-            fontWeight: n === value ? 700 : 400, transition: 'color 0.15s',
+            fontSize: 9, fontFamily: mono,
+            color: n === value ? color : C.textDim,
+            fontWeight: n === value ? 700 : 400,
           }}>
             {n}
           </span>
         ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Difficulty descriptions ────────────────────────────────────────────────
+
+const DIFF_INFO: Record<Difficulty, { label: string; sub: string; color: string }> = {
+  easy:   { label: 'FÁCIL',   sub: 'lento',  color: '#00BF44' },
+  normal: { label: 'NORMAL',  sub: 'padrão', color: C.blue    },
+  hard:   { label: 'DIFÍCIL', sub: 'brutal', color: C.red     },
+}
+
+// ── CP count descriptions ─────────────────────────────────────────────────
+
+const CP_INFO: Record<number, { label: string; sub: string }> = {
+  1: { label: '1', sub: 'rei-do-morro' },
+  3: { label: '3', sub: 'clássico'     },
+  5: { label: '5', sub: 'flancos'      },
+}
+
+// ── Ticket options ────────────────────────────────────────────────────────
+
+const TICKET_OPTIONS = [100, 150, 200, 250, 300]
+
+// ── Summary row ───────────────────────────────────────────────────────────
+
+function StatChip({ color, label, value }: { color: string; label: string; value: string | number }) {
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+      padding: '6px 12px',
+      background: color + '10',
+      border: `1px solid ${color}44`,
+      borderRadius: 3,
+    }}>
+      <span style={{ fontSize: 14, fontWeight: 900, color, fontFamily: mono }}>{value}</span>
+      <span style={{ fontSize: 8, color: C.textDim, fontFamily: mono, letterSpacing: '1px' }}>{label}</span>
+    </div>
+  )
+}
+
+// ── Main screen ───────────────────────────────────────────────────────────
+
+export default function ConfigScreen({ onStart }: Props) {
+  const [blueSquads,     setBlueSquads]     = useState(4)
+  const [redSquads,      setRedSquads]      = useState(4)
+  const [cpCount,        setCpCount]        = useState<1 | 3 | 5>(3)
+  const [initialTickets, setInitialTickets] = useState(200)
+  const [difficulty,     setDifficulty]     = useState<Difficulty>('normal')
+
+  const diffColor = DIFF_INFO[difficulty].color
+
+  const handleStart = () => {
+    onStart({ blueSquads, redSquads, cpCount, initialTickets, difficulty })
+  }
+
+  const card: CSSProperties = {
+    background: C.panelBg,
+    border: `1px solid ${C.border}`,
+    borderRadius: 4,
+    padding: '18px 20px',
+    marginBottom: 12,
+  }
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: '#04090f',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontFamily: mono,
+      color: C.text,
+      padding: '24px 0',
+    }}>
+
+      {/* ── Header ── */}
+      <div style={{ textAlign: 'center', marginBottom: 28 }}>
+        <div style={{ fontSize: 9, letterSpacing: '6px', color: C.textDim, marginBottom: 8 }}>
+          BATTLEFIELD 4
+        </div>
+        <h1 style={{
+          fontSize: 36, fontWeight: 900, margin: 0,
+          color: C.blue, letterSpacing: 4,
+          textShadow: `0 0 28px ${C.blue}55`,
+          fontFamily: mono,
+        }}>
+          ◈ COMMANDER MODE
+        </h1>
+        <div style={{ fontSize: 10, color: C.textDim, marginTop: 8, letterSpacing: '3px' }}>
+          CONFIGURE SUA MISSÃO
+        </div>
+      </div>
+
+      {/* ── Config panel ── */}
+      <div style={{ width: 440 }}>
+
+        {/* — Forças — */}
+        <div style={card}>
+          <SectionLabel>Forças</SectionLabel>
+          <SliderRow
+            label="SQUADS ALIADOS (US)"
+            value={blueSquads} min={2} max={6}
+            onChange={setBlueSquads} color={C.blue}
+          />
+          <div style={{ height: 18 }} />
+          <SliderRow
+            label="SQUADS INIMIGOS (CN)"
+            value={redSquads} min={2} max={6}
+            onChange={setRedSquads} color={C.red}
+          />
+        </div>
+
+        {/* — Mapa — */}
+        <div style={card}>
+          <SectionLabel>Pontos de Controle</SectionLabel>
+          <BtnGroup
+            options={([1, 3, 5] as (1 | 3 | 5)[]).map(n => ({
+              value: n,
+              label: CP_INFO[n].label,
+              sub:   CP_INFO[n].sub,
+            }))}
+            value={cpCount}
+            onChange={setCpCount}
+            color={C.neutral}
+          />
+        </div>
+
+        {/* — Partida — */}
+        <div style={card}>
+          <SectionLabel>Configurações da Partida</SectionLabel>
+
+          {/* Tickets */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{
+              fontSize: 9, fontWeight: 700, letterSpacing: '2px',
+              color: C.textDim, marginBottom: 8,
+            }}>
+              TICKETS INICIAIS
+            </div>
+            <BtnGroup
+              options={TICKET_OPTIONS.map(n => ({ value: n, label: String(n) }))}
+              value={initialTickets}
+              onChange={setInitialTickets}
+              color={C.cooldown}
+            />
+          </div>
+
+          {/* Difficulty */}
+          <div>
+            <div style={{
+              fontSize: 9, fontWeight: 700, letterSpacing: '2px',
+              color: C.textDim, marginBottom: 8,
+            }}>
+              DIFICULDADE DA IA
+            </div>
+            <BtnGroup
+              options={(['easy', 'normal', 'hard'] as Difficulty[]).map(d => ({
+                value: d,
+                label: DIFF_INFO[d].label,
+                sub:   DIFF_INFO[d].sub,
+              }))}
+              value={difficulty}
+              onChange={setDifficulty}
+              color={diffColor}
+            />
+          </div>
+        </div>
+
+        {/* — Summary chips — */}
+        <div style={{
+          display: 'flex', gap: 8, justifyContent: 'center',
+          marginBottom: 14, flexWrap: 'wrap',
+        }}>
+          <StatChip color={C.blue}    label="ALIADOS"  value={blueSquads} />
+          <StatChip color={C.red}     label="INIMIGOS" value={redSquads} />
+          <StatChip color={C.neutral} label="PONTOS"   value={cpCount} />
+          <StatChip color={C.cooldown} label="TICKETS" value={initialTickets} />
+          <StatChip color={diffColor} label="DIFICUL." value={DIFF_INFO[difficulty].label} />
+        </div>
+
+        {/* — Start button — */}
+        <button
+          onClick={handleStart}
+          style={{
+            width: '100%',
+            padding: '14px 0',
+            background: `linear-gradient(135deg, ${C.blueDim}cc, ${C.blue}88)`,
+            border: `1px solid ${C.blue}`,
+            borderRadius: 3,
+            color: '#e8f8ff',
+            fontSize: 14, fontWeight: 900,
+            letterSpacing: '4px', cursor: 'pointer',
+            fontFamily: mono,
+            boxShadow: `0 0 20px ${C.blue}22`,
+            transition: 'all 0.15s',
+          }}
+          onMouseEnter={e => {
+            const btn = e.currentTarget
+            btn.style.background = `linear-gradient(135deg, ${C.blue}cc, ${C.blue})`
+            btn.style.boxShadow  = `0 0 30px ${C.blue}44`
+          }}
+          onMouseLeave={e => {
+            const btn = e.currentTarget
+            btn.style.background = `linear-gradient(135deg, ${C.blueDim}cc, ${C.blue}88)`
+            btn.style.boxShadow  = `0 0 20px ${C.blue}22`
+          }}
+        >
+          ▶ INICIAR MISSÃO
+        </button>
+
+      </div>
+
+      {/* Footer */}
+      <div style={{ marginTop: 20, fontSize: 9, color: C.textDim, letterSpacing: '2px' }}>
+        IA ADAPTATIVA · PRESSÃO DE TICKETS · FOG OF WAR · KEYBINDS Q W E R A S
       </div>
     </div>
   )

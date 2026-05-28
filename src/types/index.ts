@@ -1,6 +1,11 @@
+export type Difficulty = 'easy' | 'normal' | 'hard'
+
 export interface GameConfig {
-  blueSquads: number   // 2–6
-  redSquads:  number   // 2–6
+  blueSquads:     number        // 2–6
+  redSquads:      number        // 2–6
+  cpCount:        1 | 3 | 5    // number of control points on the map
+  initialTickets: number        // 100 | 150 | 200 | 250 | 300
+  difficulty:     Difficulty    // affects bleed rate and min game time
 }
 
 export type Team = 'blue' | 'red'
@@ -88,6 +93,7 @@ export interface GameState {
   redTickets: number
   ticketsMax: number
   minGameTime: number                // seconds before tickets can end the game
+  bleedRatePerCp: number             // tickets/s drained per CP advantage
   redAI: {
     cpPressure: Record<string, number>  // CP id → heat from player attacks (decays over time)
   }

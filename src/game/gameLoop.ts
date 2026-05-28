@@ -2,7 +2,6 @@ import type { GameState, ControlPoint, Squad, Team, GamePhase } from '../types'
 import { updateSquad, applyCombat, assignTeamSquads, assignRedSquads, separateSoldiers, regenHP, reinforceSoldiers, CP_CAPTURE_RANGE, CP_CAPTURE_TIME } from './units'
 import {
   BLUE_BASE, RED_BASE,
-  BLEED_RATE_PER_CP,
   TICKET_DEATH_COST,
   RESPAWN_TICKET_COST,
   SQUAD_RESPAWN_TIME,
@@ -46,13 +45,13 @@ function updateCaptures(squads: Squad[], cps: ControlPoint[], dt: number): Contr
 // Only the team with FEWER CPs bleeds. Neutral CPs don't count.
 // Rate = BLEED_RATE_PER_CP × CP_advantage_of_enemy × dt
 
-function computeBleeding(cps: ControlPoint[], dt: number): { blueDrain: number; redDrain: number } {
+function computeBleeding(cps: ControlPoint[], dt: number, rate: number): { blueDrain: number; redDrain: number } {
   const blueCPs = cps.filter(cp => cp.owner === 'blue').length
   const redCPs  = cps.filter(cp => cp.owner === 'red').length
 
   const blueAdvantage = blueCPs - redCPs
-  const blueDrain = blueAdvantage < 0 ? Math.abs(blueAdvantage) * BLEED_RATE_PER_CP * dt : 0
-  const redDrain  = blueAdvantage > 0 ? blueAdvantage            * BLEED_RATE_PER_CP * dt : 0
+  const blueDrain = blueAdvantage < 0 ? Math.abs(blueAdvantage) * rate * dt : 0
+  const redDrain  = blueAdvantage > 0 ? blueAdvantage            * rate * dt : 0
 
   return { blueDrain, redDrain }
 }
@@ -206,8 +205,8 @@ export function tick(state: GameState, dt: number): GameState {
   // 6. Update capture points
   const controlPoints = updateCaptures(squads, state.controlPoints, dt)
 
-  // 7. Bleeding (based on updated CP ownership)
-  const { blueDrain, redDrain } = computeBleeding(controlPoints, dt)
+  // 7. Bleeding (based on updated CP ownership + per-game bleed rate)
+  const { blueDrain, redDrain } = computeBleeding(controlPoints, dt, state.bleedRatePerCp)
 
   // 8. Apply all ticket costs together
   const blueTickets = Math.max(0, state.blueTickets - blueDrain - blueLost - blueRespawnCost)
