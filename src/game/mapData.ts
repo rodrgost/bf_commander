@@ -51,6 +51,25 @@ const DIFFICULTY: Record<Difficulty, { bleedRatePerCp: number; minGameTime: numb
   hard:   { bleedRatePerCp: 0.70, minGameTime: 300 },   // fast bleed, merciless AI
 }
 
+// ── NATO phonetic alphabet — squad callsigns ──────────────────────────────
+// Used to label squads: B1→ALPHA, B2→BRAVO, … (up to 6 squads max)
+
+export const NATO_ALPHABET = [
+  'ALPHA', 'BRAVO', 'CHARLIE', 'DELTA', 'ECHO', 'FOXTROT',
+] as const
+
+/** Full NATO callsign for a squad id like "b1", "r3" */
+export function squadNato(squadId: string): string {
+  const m = squadId.match(/^[br](\d+)$/)
+  const i = m ? parseInt(m[1]) - 1 : -1
+  return NATO_ALPHABET[i] ?? squadId.toUpperCase()
+}
+
+/** 3-char abbreviation used in tight canvas labels */
+export function squadNatoShort(squadId: string): string {
+  return squadNato(squadId).slice(0, 3)
+}
+
 // ── Default config ────────────────────────────────────────────────────────
 
 export const DEFAULT_CONFIG: GameConfig = {

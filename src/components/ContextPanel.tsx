@@ -1,7 +1,7 @@
 import React from 'react'
 import type { CSSProperties } from 'react'
 import type { GameState, SelectionTarget, AbilityId, Vec2, Squad, ControlPoint } from '../types'
-import { SQUAD_RESPAWN_TIME } from '../game/mapData'
+import { SQUAD_RESPAWN_TIME, squadNato } from '../game/mapData'
 
 interface Props {
   selection:           SelectionTarget | null
@@ -266,8 +266,8 @@ function SquadRow({
       }}
       title={canSelect ? 'Clique para selecionar · Ctrl+Clique para multi-seleção' : undefined}
     >
-      <span style={{ color: selected ? BF4.blue : BF4.textDim, fontWeight: 700, minWidth: 20, fontSize: 10 }}>
-        B{idx + 1}
+      <span style={{ color: selected ? BF4.blue : BF4.textDim, fontWeight: 700, minWidth: 52, fontSize: 9, letterSpacing: '0.5px' }}>
+        {squadNato(squad.id)}
       </span>
 
       <span style={{ color: role.color, fontSize: 9, minWidth: 18 }} title={squad.role}>
@@ -555,7 +555,7 @@ function BaseContextPanel({ team, state }: {
             const aliveSol = s.soldiers.filter(sol => sol.hp > 0).length
             return (
               <div key={s.id} style={{ ...rowStyle, padding: '4px 12px', borderBottom: '1px solid #081420' }}>
-                <span style={{ color, fontWeight: 700, minWidth: 24 }}>{s.id.toUpperCase()}</span>
+                <span style={{ color, fontWeight: 700, minWidth: 52, fontSize: 9 }}>{squadNato(s.id)}</span>
                 <span style={{ color: role.color, fontSize: 9 }}>{role.icon}</span>
                 <HpBar hp={s.hp} maxHp={s.maxHp} />
                 <span style={{ color: '#475569', fontSize: 10, minWidth: 20, textAlign: 'right' }}>
@@ -572,7 +572,7 @@ function BaseContextPanel({ team, state }: {
           <div style={sectionTitle}>Respawnando</div>
           {dead.map(s => (
             <div key={s.id} style={{ ...rowStyle, padding: '4px 12px', borderBottom: '1px solid #081420' }}>
-              <span style={{ color: '#374151', minWidth: 24 }}>{s.id.toUpperCase()}</span>
+              <span style={{ color: '#374151', minWidth: 52, fontSize: 9 }}>{squadNato(s.id)}</span>
               <span style={{ color: '#374151', fontSize: 9 }}>↺</span>
               <div style={{ ...hpBarTrack, background: '#1a0a0a' }}>
                 <div style={{
@@ -654,12 +654,12 @@ export default function ContextPanel({
           }}>
             <div style={{ fontSize: 9, fontWeight: 900, color: BF4.blue, letterSpacing: '1.5px' }}>
               {selectedSquads.length === 1
-                ? `◈ SQUAD ${selectedSquads[0].id.toUpperCase()}`
+                ? `◈ ${squadNato(selectedSquads[0].id)}`
                 : `◈ ${selectedSquads.length} SQUADS SELECIONADOS`}
             </div>
             {selectedSquads.length > 1 && (
               <div style={{ fontSize: 8, color: BF4.textDim, marginTop: 2 }}>
-                {selectedSquads.map(s => s.id.toUpperCase()).join(' · ')}
+                {selectedSquads.map(s => squadNato(s.id)).join(' · ')}
               </div>
             )}
           </div>

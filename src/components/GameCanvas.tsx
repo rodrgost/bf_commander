@@ -1,7 +1,7 @@
 import React from 'react'
 import { Stage, Layer, Rect, Circle, Text, Arc, Ring, Line, RegularPolygon } from 'react-konva'
 import type { GameState, Squad, Vec2, SelectionTarget } from '../types'
-import { MAP_W, MAP_H, BLUE_BASE, RED_BASE } from '../game/mapData'
+import { MAP_W, MAP_H, BLUE_BASE, RED_BASE, squadNatoShort } from '../game/mapData'
 import { VISION_RANGE } from '../game/units'
 import type { KonvaEventObject } from 'konva/lib/Node'
 
@@ -80,22 +80,23 @@ function isEnemyVisible(state: GameState, squad: Squad): boolean {
   })
 }
 
-// Squad action tag text: "B2 / ATK A", "R1 / DEF B", …
+// Squad action tag text: "BRV / ATK A", "CHR / DEF B", …
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function actionTag(squad: Squad, cps: any[]): string {
+  const callsign = squadNatoShort(squad.id)
   // Show manual target indicator
   if (squad.manualTargetCpId) {
     const cp = cps.find((c: { id: string; label: string }) => c.id === squad.manualTargetCpId)
-    if (cp) return `${squad.id.toUpperCase()} ▶ ${cp.label[0]}`
+    if (cp) return `${callsign} ▶ ${cp.label[0]}`
   }
-  if (!squad.targetCpId) return squad.id.toUpperCase()
+  if (!squad.targetCpId) return callsign
   const cp = cps.find((c: { id: string; label: string }) => c.id === squad.targetCpId)
-  if (!cp) return squad.id.toUpperCase()
+  if (!cp) return callsign
   const verb =
     squad.role === 'defend'  ? 'DEF' :
     squad.role === 'retreat' ? 'RET' :
     squad.role === 'hold'    ? 'HLD' : 'ATK'
-  return `${squad.id.toUpperCase()} / ${verb} ${cp.label[0]}`
+  return `${callsign} / ${verb} ${cp.label[0]}`
 }
 
 export default function GameCanvas({
@@ -426,7 +427,7 @@ export default function GameCanvas({
           const cx         = squad.position.x
           const cy         = squad.position.y
 
-          const tag      = isBlue ? actionTag(squad, state.controlPoints) : squad.id.toUpperCase()
+          const tag      = isBlue ? actionTag(squad, state.controlPoints) : squadNatoShort(squad.id)
           const tagColor = suppressed ? C.SUPPRESS
             : squad.berserker    ? '#FF3366'     // berserker = bright magenta-red
             : isBlue             ? C.BLUE : C.RED
