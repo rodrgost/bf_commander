@@ -7,8 +7,8 @@ export const BLUE_BASE: { x: number; y: number } = { x: 450, y: 468 }
 export const RED_BASE:  { x: number; y: number } = { x: 450, y:  52 }
 
 // Ticket system constants (defaults — runtime values live in GameState)
-export const TICKET_DEATH_COST   = 10    // tickets lost when a squad is killed
-export const RESPAWN_TICKET_COST = 5     // tickets lost when a squad respawns
+export const TICKET_PER_SOLDIER  = 1     // tickets lost per individual soldier death
+export const RESPAWN_TICKET_COST = 5     // tickets lost when a squad respawns at base
 export const SQUAD_RESPAWN_TIME  = 12    // seconds to respawn at base
 
 // Kept as a fallback / reference; actual value is written into GameState at start

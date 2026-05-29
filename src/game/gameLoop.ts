@@ -2,7 +2,7 @@ import type { GameState, ControlPoint, Squad, Team, GamePhase } from '../types'
 import { updateSquad, applyCombat, assignTeamSquads, assignRedSquads, separateSoldiers, regenHP, reinforceSoldiers, CP_CAPTURE_RANGE, CP_CAPTURE_TIME } from './units'
 import {
   BLUE_BASE, RED_BASE,
-  TICKET_DEATH_COST,
+  TICKET_PER_SOLDIER,
   RESPAWN_TICKET_COST,
   SQUAD_RESPAWN_TIME,
 } from './mapData'
@@ -114,28 +114,46 @@ function tickRespawns(
   return { squads: next, blueRespawnCost, redRespawnCost }
 }
 
-// ── Death cost ────────────────────────────────────────────────────────────
-// Detects squads that just died this tick, starts their respawn timer,
-// and returns how many tickets each team lost from deaths.
+// ── Individual soldier death tickets ─────────────────────────────────────
+// Compare squads before and after applyCombat.
+// Each soldier that went hp > 0 → hp ≤ 0 this tick costs TICKET_PER_SOLDIER.
 
-function processDeaths(
-  squads: Squad[],
-  prevSquads: Squad[],
-): { squads: Squad[]; blueLost: number; redLost: number } {
+function countSoldierDeaths(
+  after: Squad[],
+  before: Squad[],
+): { blueLost: number; redLost: number } {
   let blueLost = 0
   let redLost  = 0
 
-  const next = squads.map((s, i) => {
+  for (let i = 0; i < after.length; i++) {
+    const sqAfter  = after[i]
+    const sqBefore = before[i]
+    if (!sqBefore) continue
+    for (let j = 0; j < sqAfter.soldiers.length; j++) {
+      const prev = sqBefore.soldiers[j]
+      const curr = sqAfter.soldiers[j]
+      if (prev && curr && prev.hp > 0 && curr.hp <= 0) {
+        if (sqAfter.team === 'blue') blueLost += TICKET_PER_SOLDIER
+        else                         redLost  += TICKET_PER_SOLDIER
+      }
+    }
+  }
+
+  return { blueLost, redLost }
+}
+
+// ── Squad respawn timer ───────────────────────────────────────────────────
+// Detects squads that just died this tick and starts their respawn timer.
+// (Ticket cost is handled per-soldier above.)
+
+function processDeaths(squads: Squad[], prevSquads: Squad[]): Squad[] {
+  return squads.map((s, i) => {
     const prev = prevSquads[i]
-    if (s.status === 'dead' && prev.status !== 'dead') {
-      if (s.team === 'blue') blueLost += TICKET_DEATH_COST
-      else                    redLost  += TICKET_DEATH_COST
+    if (s.status === 'dead' && prev?.status !== 'dead') {
       return { ...s, respawnTimer: SQUAD_RESPAWN_TIME }
     }
     return s
   })
-
-  return { squads: next, blueLost, redLost }
 }
 
 // ── Victory condition ─────────────────────────────────────────────────────
@@ -193,7 +211,7 @@ export function tick(state: GameState, dt: number): GameState {
   squads = assignRedSquads(squads, state.controlPoints, state)
 
   // 3. Move & AI
-  const prevSquads = squads
+  const preMovementSquads = squads
   squads = squads.map(squad => updateSquad(squad, squads, state.controlPoints, dt, state.squadSpeedMult))
 
   // 3b. Separate overlapping soldiers (collision resolution across all squads)
@@ -206,11 +224,14 @@ export function tick(state: GameState, dt: number): GameState {
   squads = reinforceSoldiers(squads)
 
   // 4. Combat damage
+  const preCombatSquads = squads
   squads = applyCombat(squads, dt)
 
-  // 5. Detect deaths → start respawn timers, collect death costs
-  const { squads: squadsAfterDeath, blueLost, redLost } = processDeaths(squads, prevSquads)
-  squads = squadsAfterDeath
+  // 5a. Count individual soldier deaths → ticket cost (compare pre/post combat)
+  const { blueLost, redLost } = countSoldierDeaths(squads, preCombatSquads)
+
+  // 5b. Detect squad-level deaths → start respawn timers
+  squads = processDeaths(squads, preMovementSquads)
 
   // 6. Update capture points
   const controlPoints = updateCaptures(squads, state.controlPoints, dt)
