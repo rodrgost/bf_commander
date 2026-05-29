@@ -7,6 +7,8 @@ export interface GameConfig {
   initialTickets: number        // 100 | 150 | 200 | 250 | 300
   difficulty:     Difficulty    // affects bleed rate and min game time
   maxGameTime:    number        // seconds; 0 = no time limit
+  mapZoom:        number        // Leaflet zoom level for satellite background (13–18)
+  squadSpeedMult: number        // movement speed multiplier (0.5 – 2.0)
 }
 
 export type Team = 'blue' | 'red'
@@ -99,6 +101,8 @@ export interface GameState {
   ticketsMax: number
   minGameTime: number                // seconds before tickets can end the game
   maxGameTime: number                // hard time limit in seconds (0 = unlimited)
+  mapZoom: number                    // satellite background zoom level (passed to Leaflet)
+  squadSpeedMult: number             // movement speed multiplier applied each tick
   bleedRatePerCp: number             // tickets/s drained per CP advantage
   redAI: {
     cpPressure: Record<string, number>  // CP id → heat from player attacks (decays over time)

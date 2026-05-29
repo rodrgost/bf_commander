@@ -199,7 +199,7 @@ export default function GameCanvas({
   return (
     <div style={{ position: 'relative', display: 'inline-block', lineHeight: 0 }}>
       {/* Satellite map background */}
-      <MapBackground width={MAP_W * DISPLAY_SCALE} height={MAP_H * DISPLAY_SCALE} />
+      <MapBackground width={MAP_W * DISPLAY_SCALE} height={MAP_H * DISPLAY_SCALE} zoom={state.mapZoom} />
 
     <Stage
       width={MAP_W * DISPLAY_SCALE}

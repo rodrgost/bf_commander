@@ -78,7 +78,9 @@ export const DEFAULT_CONFIG: GameConfig = {
   cpCount:        3,
   initialTickets: 200,
   difficulty:     'normal',
-  maxGameTime:    600,   // 10 minutes default
+  maxGameTime:    600,
+  mapZoom:        16,
+  squadSpeedMult: 1.0,
 }
 
 // ── Soldier helpers ───────────────────────────────────────────────────────
@@ -178,6 +180,8 @@ export function createInitialState(config: GameConfig = DEFAULT_CONFIG): GameSta
     ticketsMax:         tickets,
     minGameTime,
     maxGameTime:        config.maxGameTime ?? 0,
+    mapZoom:            config.mapZoom ?? 16,
+    squadSpeedMult:     config.squadSpeedMult ?? 1.0,
     bleedRatePerCp,
     redAI:              { cpPressure: {} },
     blueOrders:         { type: null, cpId: null, timer: 0 },

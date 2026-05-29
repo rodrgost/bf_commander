@@ -139,6 +139,8 @@ export default function ConfigScreen({ onStart }: Props) {
   const [initialTickets, setInitialTickets] = useState(200)
   const [difficulty,     setDifficulty]     = useState<Difficulty>('normal')
   const [maxGameTime,    setMaxGameTime]    = useState(600)   // seconds; 0 = unlimited
+  const [mapZoom,        setMapZoom]        = useState(16)
+  const [squadSpeedMult, setSquadSpeedMult] = useState(1.0)
 
   const diffColor = DIFF_COLOR[difficulty]
 
@@ -275,6 +277,56 @@ export default function ConfigScreen({ onStart }: Props) {
 
         </div>
 
+        {/* ── Mapa & Velocidade ── */}
+        <div style={card}>
+          <div style={{
+            fontSize: 8, fontWeight: 900, letterSpacing: '2px',
+            color: C.textDim, fontFamily: mono,
+            borderBottom: `1px solid ${C.border}`,
+            paddingBottom: 8, marginBottom: 12,
+            textTransform: 'uppercase',
+          }}>
+            Visualização &amp; Velocidade
+          </div>
+          <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+
+            {/* Map zoom */}
+            <div style={{ flex: 1 }}>
+              <BtnGroup
+                label="Zoom do mapa"
+                options={[
+                  { value: 13, label: '13', sub: '~28km' },
+                  { value: 14, label: '14', sub: '~14km' },
+                  { value: 15, label: '15', sub: '~7km'  },
+                  { value: 16, label: '16', sub: '~3.5km' },
+                  { value: 17, label: '17', sub: '~1.7km' },
+                ]}
+                value={mapZoom}
+                onChange={setMapZoom}
+                color={C.neutral}
+              />
+            </div>
+
+            {/* Squad speed */}
+            <div style={{ flex: 1 }}>
+              <BtnGroup
+                label="Velocidade dos squads"
+                options={[
+                  { value: 0.5,  label: '0.5×', sub: 'lento'   },
+                  { value: 0.75, label: '0.75×' },
+                  { value: 1.0,  label: '1×',   sub: 'normal'  },
+                  { value: 1.5,  label: '1.5×' },
+                  { value: 2.0,  label: '2×',   sub: 'rápido'  },
+                ]}
+                value={squadSpeedMult}
+                onChange={setSquadSpeedMult}
+                color={C.blue}
+              />
+            </div>
+
+          </div>
+        </div>
+
         {/* ── Summary + Start ── */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 8,
@@ -287,6 +339,8 @@ export default function ConfigScreen({ onStart }: Props) {
             { color: C.cooldown,val: initialTickets,  label: 'tkts'},
             { color: diffColor, val: difficulty[0].toUpperCase(), label: 'dif' },
             { color: C.green,   val: maxGameTime > 0 ? `${maxGameTime / 60}m` : '∞', label: 'tempo' },
+            { color: C.neutral, val: `z${mapZoom}`,     label: 'zoom'  },
+            { color: C.blue,    val: `${squadSpeedMult}×`, label: 'vel'   },
           ].map(({ color, val, label }) => (
             <div key={label} style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -303,7 +357,7 @@ export default function ConfigScreen({ onStart }: Props) {
 
           {/* Start button — takes remaining space */}
           <button
-            onClick={() => onStart({ blueSquads, redSquads, cpCount, initialTickets, difficulty, maxGameTime })}
+            onClick={() => onStart({ blueSquads, redSquads, cpCount, initialTickets, difficulty, maxGameTime, mapZoom, squadSpeedMult })}
             style={{
               flex: 1,
               padding: '12px 0',

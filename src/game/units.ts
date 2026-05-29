@@ -187,6 +187,7 @@ export function updateSquad(
   allSquads: Squad[],
   cps: ControlPoint[],
   dt: number,
+  speedMult = 1.0,
 ): Squad {
   if (squad.status === 'dead') return squad
 
@@ -221,7 +222,7 @@ export function updateSquad(
     const target: Vec2 = ownedCPs.length > 0
       ? ownedCPs.reduce((a, b) => dist(squad.position, a.position) < dist(squad.position, b.position) ? a : b).position
       : base
-    return { ...squad, status: 'moving', suppressedTimer: 0, ...recentered(moveSoldiersTo(target, SQUAD_SPEED * 1.2)) }
+    return { ...squad, status: 'moving', suppressedTimer: 0, ...recentered(moveSoldiersTo(target, SQUAD_SPEED * 1.2 * speedMult)) }
   }
 
   // ── 2. Enemies in range → fight ────────────────────────────────────────
@@ -238,7 +239,7 @@ export function updateSquad(
     if (enemySquadsInRange.length > 0) {
       const weakest = enemySquadsInRange.reduce((a, b) => a.hp < b.hp ? a : b)
       if (squad.hp > weakest.hp) {
-        return { ...squad, status: 'fighting', suppressedTimer: 0, ...recentered(moveSoldiersTo(weakest.position, SQUAD_SPEED * 0.6)) }
+        return { ...squad, status: 'fighting', suppressedTimer: 0, ...recentered(moveSoldiersTo(weakest.position, SQUAD_SPEED * 0.6 * speedMult)) }
       }
     }
     return { ...squad, status: 'fighting', suppressedTimer: 0 }
@@ -256,7 +257,7 @@ export function updateSquad(
       s => s.team === squad.team && s.status === 'fighting' &&
            dist(squad.position, s.position) < assistRadius)
     if (fightingAlly) {
-      return { ...squad, status: 'moving', suppressedTimer: 0, ...recentered(moveSoldiersTo(fightingAlly.position, SQUAD_SPEED)) }
+      return { ...squad, status: 'moving', suppressedTimer: 0, ...recentered(moveSoldiersTo(fightingAlly.position, SQUAD_SPEED * speedMult)) }
     }
   }
 
@@ -268,14 +269,14 @@ export function updateSquad(
     if (dist(squad.position, dest) < HOLD_RADIUS) {
       return { ...squad, status: 'idle', suppressedTimer: 0 }
     }
-    return { ...squad, status: 'moving', suppressedTimer: 0, ...recentered(moveSoldiersTo(dest, SQUAD_SPEED)) }
+    return { ...squad, status: 'moving', suppressedTimer: 0, ...recentered(moveSoldiersTo(dest, SQUAD_SPEED * speedMult)) }
   }
 
   // ── 4. ATTACK / DEFEND ─────────────────────────────────────────────────
   if (squad.targetCpId) {
     const cp = cps.find(c => c.id === squad.targetCpId)
     if (cp) {
-      return { ...squad, status: 'moving', suppressedTimer: 0, ...recentered(moveSoldiersTo(cp.position, SQUAD_SPEED)) }
+      return { ...squad, status: 'moving', suppressedTimer: 0, ...recentered(moveSoldiersTo(cp.position, SQUAD_SPEED * speedMult)) }
     }
   }
 

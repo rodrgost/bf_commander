@@ -196,7 +196,7 @@ export function tick(state: GameState, dt: number): GameState {
 
   // 3. Move & AI
   const prevSquads = squads
-  squads = squads.map(squad => updateSquad(squad, squads, state.controlPoints, dt))
+  squads = squads.map(squad => updateSquad(squad, squads, state.controlPoints, dt, state.squadSpeedMult))
 
   // 3b. Separate overlapping soldiers (collision resolution across all squads)
   squads = separateSoldiers(squads)
