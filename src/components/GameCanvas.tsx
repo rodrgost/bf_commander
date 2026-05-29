@@ -5,6 +5,7 @@ import { MAP_W, MAP_H, BLUE_BASE, RED_BASE, squadNatoShort } from '../game/mapDa
 import { VISION_RANGE } from '../game/units'
 import type { KonvaEventObject } from 'konva/lib/Node'
 import MapBackground from './MapBackground'
+import UAVOverlay from './UAVOverlay'
 
 const DISPLAY_SCALE = 1.0
 
@@ -200,6 +201,9 @@ export default function GameCanvas({
     <div style={{ position: 'relative', display: 'inline-block', lineHeight: 0 }}>
       {/* Satellite map background */}
       <MapBackground width={MAP_W * DISPLAY_SCALE} height={MAP_H * DISPLAY_SCALE} zoom={state.mapZoom} />
+
+      {/* UAV surveillance camera effects */}
+      <UAVOverlay width={MAP_W * DISPLAY_SCALE} height={MAP_H * DISPLAY_SCALE} />
 
     <Stage
       width={MAP_W * DISPLAY_SCALE}
