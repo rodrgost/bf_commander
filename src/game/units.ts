@@ -11,7 +11,7 @@ export const CP_CAPTURE_RANGE = 55    // px — soldier must be within this to c
 export const CP_CAPTURE_TIME  = 3.5   // seconds to fully capture
 export const VISION_RANGE     = 130   // px — blue squad centroid reveals nearby enemies
 export const RETREAT_ENTER_PCT = 0.40 // HP% to enter retreat
-export const RETREAT_EXIT_PCT  = 0.65 // HP% to leave retreat (hysteresis)
+export const RETREAT_EXIT_PCT  = 1.00 // HP% to leave retreat — squad waits for full HP by default
 export const HOLD_RADIUS      = 40    // px — hold squads idle within this around the CP
 export const HP_REGEN_RATE    = 5     // HP/s per soldier while safe
 export const BASE_REGEN_RANGE = 70    // px radius around base that triggers regen
@@ -168,7 +168,8 @@ export function computeRedAggression(state: GameState): number {
 export function assignRedSquads(squads: Squad[], cps: ControlPoint[], state: GameState): Squad[] {
   const aggression = computeRedAggression(state)
   const enterPct = Math.max(0.10, RETREAT_ENTER_PCT - (aggression - 0.5) * 0.40)
-  const exitPct  = Math.max(0.20, RETREAT_EXIT_PCT  - (aggression - 0.5) * 0.50)
+  // exitPct clamped to 1.0 — red can never require more than 100% HP to exit retreat
+  const exitPct  = Math.min(1.0, Math.max(0.20, RETREAT_EXIT_PCT - (aggression - 0.5) * 0.50))
   return assignTeamSquads(squads, cps, 'red', {
     retreatEnterPct: enterPct,
     retreatExitPct:  exitPct,
