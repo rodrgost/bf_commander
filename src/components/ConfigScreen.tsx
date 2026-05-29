@@ -139,7 +139,7 @@ export default function ConfigScreen({ onStart }: Props) {
   const [initialTickets, setInitialTickets] = useState(200)
   const [difficulty,     setDifficulty]     = useState<Difficulty>('normal')
   const [maxGameTime,    setMaxGameTime]    = useState(600)   // seconds; 0 = unlimited
-  const [mapZoom,        setMapZoom]        = useState(16)
+  const [mapZoom,        setMapZoom]        = useState(14)
   const [squadSpeedMult, setSquadSpeedMult] = useState(1.0)
 
   const diffColor = DIFF_COLOR[difficulty]

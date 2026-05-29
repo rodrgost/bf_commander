@@ -79,7 +79,7 @@ export const DEFAULT_CONFIG: GameConfig = {
   initialTickets: 200,
   difficulty:     'normal',
   maxGameTime:    600,
-  mapZoom:        16,
+  mapZoom:        14,
   squadSpeedMult: 1.0,
 }
 
