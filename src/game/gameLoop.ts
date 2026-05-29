@@ -148,14 +148,12 @@ function checkVictory(
   blueTickets: number,
   redTickets: number,
 ): GamePhase {
-  // 1. Ticket exhaustion (only after minGameTime)
-  if (state.elapsed >= state.minGameTime) {
-    const blueDead = blueTickets <= 0
-    const redDead  = redTickets  <= 0
-    if (blueDead && redDead) return 'draw'
-    if (blueDead)            return 'defeat'
-    if (redDead)             return 'victory'
-  }
+  // 1. Ticket exhaustion — ends immediately whenever tickets reach 0
+  const blueDead = blueTickets <= 0
+  const redDead  = redTickets  <= 0
+  if (blueDead && redDead) return 'draw'
+  if (blueDead)            return 'defeat'
+  if (redDead)             return 'victory'
 
   // 2. Hard time limit
   if (state.maxGameTime > 0 && state.elapsed >= state.maxGameTime) {

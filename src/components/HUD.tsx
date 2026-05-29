@@ -19,27 +19,22 @@ interface TicketBarProps {
   tickets: number
   max:     number
   team:    'blue' | 'red'
-  label:   string
-  locked:  boolean
 }
 
-function TicketBar({ tickets, max, team, label, locked }: TicketBarProps) {
+function TicketBar({ tickets, max, team }: TicketBarProps) {
   const pct = Math.max(0, tickets / max) * 100
 
   const baseColor = team === 'blue' ? '#00C8FF' : '#FF6633'
-  const fillColor = locked
-    ? '#2a3a4a'
-    : pct < 10  ? '#FF6633'
-    : pct < 25  ? '#FFCC00'
-    : baseColor
-  const labelColor = locked ? '#2e4557' : fillColor
+  const fillColor = pct < 10  ? '#FF6633'
+                  : pct < 25  ? '#FFCC00'
+                  : baseColor
 
   return (
     <div className={styles.ticketGroup}>
-      <span className={styles.ticketLabel} style={{ color: labelColor }}>
-        {locked ? '🔒' : team === 'blue' ? 'US' : 'CN'}
+      <span className={styles.ticketLabel} style={{ color: fillColor }}>
+        {team === 'blue' ? 'US' : 'CN'}
       </span>
-      <div className={`${styles.ticketBarWrap} ${locked ? styles.ticketBarLocked : ''}`}>
+      <div className={styles.ticketBarWrap}>
         <div
           className={styles.ticketBar}
           style={{
@@ -49,7 +44,7 @@ function TicketBar({ tickets, max, team, label, locked }: TicketBarProps) {
           }}
         />
       </div>
-      <span className={styles.ticketValue} style={{ color: labelColor }}>
+      <span className={styles.ticketValue} style={{ color: fillColor }}>
         {Math.ceil(tickets)}
       </span>
     </div>
@@ -85,9 +80,6 @@ export default function HUD({ state, onRestart }: Props) {
   const redCPs  = state.controlPoints.filter(cp => cp.owner === 'red').length
   const cpPct   = (state.commanderPoints / state.commanderPointsMax) * 100
 
-  const locked   = state.elapsed < state.minGameTime
-  const timeLeft = Math.max(0, state.minGameTime - state.elapsed)
-
   // ── Timer display ─────────────────────────────────────────────────────
   // If a time limit is set: show countdown; otherwise show elapsed time.
   const hasLimit  = state.maxGameTime > 0
@@ -108,10 +100,7 @@ export default function HUD({ state, onRestart }: Props) {
       </div>
 
       {/* ── US Tickets ── */}
-      <TicketBar
-        tickets={state.blueTickets} max={state.ticketsMax}
-        team="blue" label="US" locked={locked}
-      />
+      <TicketBar tickets={state.blueTickets} max={state.ticketsMax} team="blue" />
 
       {/* ── CP status bar ── */}
       <div className={styles.cpScore}>
@@ -130,16 +119,7 @@ export default function HUD({ state, onRestart }: Props) {
       </div>
 
       {/* ── CN Tickets ── */}
-      <TicketBar
-        tickets={state.redTickets} max={state.ticketsMax}
-        team="red" label="CN" locked={locked}
-      />
-
-      {locked && (
-        <div className={styles.lockTimer} title="Tickets só encerram após o tempo mínimo">
-          unlock {formatTime(timeLeft)}
-        </div>
-      )}
+      <TicketBar tickets={state.redTickets} max={state.ticketsMax} team="red" />
 
       {/* ── Commander Points ── */}
       <div className={styles.cpSection}>
