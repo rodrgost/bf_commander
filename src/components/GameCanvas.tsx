@@ -135,23 +135,27 @@ export default function GameCanvas({
   useEffect(() => { stateRef.current = { mapLevel, stageOffset, stageZoom } },
     [mapLevel, stageOffset, stageZoom])
 
-  // Clamp offset so the game world [0,MAP_W]×[0,MAP_H] always covers the
-  // full canvas — prevents blank areas at corners/edges when zooming.
-  const clampOffset = (ox: number, oy: number, zoom: number) => ({
-    x: Math.min(0, Math.max(MAP_W  * (1 - zoom), ox)),
+  // Clamp offset so the game world always covers the full canvas.
+  const clamp = (ox: number, oy: number, zoom: number) => ({
+    x: Math.min(0, Math.max(MAP_W * (1 - zoom), ox)),
     y: Math.min(0, Math.max(MAP_H * (1 - zoom), oy)),
   })
+
+  // ── Drag-to-pan ──────────────────────────────────────────────────────
+  const [isDragging,  setIsDragging]  = useState(false)
+  const dragRef    = useRef<{ sx: number; sy: number; ox: number; oy: number } | null>(null)
+  const hasDragged = useRef(false)   // distinguishes drag from click
 
   const wrapperRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const el = wrapperRef.current
     if (!el) return
+
+    // ── Scroll zoom ──────────────────────────────────────────────────
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()
       const { mapLevel: lv, stageOffset: off, stageZoom: z } = stateRef.current
-      const newLevel = e.deltaY < 0
-        ? Math.min(MAX_ZOOM, lv + 1)
-        : Math.max(MIN_ZOOM, lv - 1)
+      const newLevel = e.deltaY < 0 ? Math.min(MAX_ZOOM, lv + 1) : Math.max(MIN_ZOOM, lv - 1)
       if (newLevel === lv) return
       const newZoom = Math.pow(2, newLevel - BASE_ZOOM)
       const rect = el.getBoundingClientRect()
@@ -160,10 +164,46 @@ export default function GameCanvas({
       const rawX = px - (px - off.x) * (newZoom / z)
       const rawY = py - (py - off.y) * (newZoom / z)
       setMapLevel(newLevel)
-      setStageOffset(clampOffset(rawX, rawY, newZoom))
+      setStageOffset(clamp(rawX, rawY, newZoom))
     }
-    el.addEventListener('wheel', onWheel, { passive: false })
-    return () => el.removeEventListener('wheel', onWheel)
+
+    // ── Drag to pan ──────────────────────────────────────────────────
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.button !== 0) return
+      const { stageOffset: off, stageZoom: z } = stateRef.current
+      if (z <= 1) return   // no pan needed at full-world view
+      dragRef.current = { sx: e.clientX, sy: e.clientY, ox: off.x, oy: off.y }
+      hasDragged.current = false
+      el.setPointerCapture(e.pointerId)
+    }
+    const onPointerMove = (e: PointerEvent) => {
+      if (!dragRef.current) return
+      const { stageZoom: z } = stateRef.current
+      const dx = e.clientX - dragRef.current.sx
+      const dy = e.clientY - dragRef.current.sy
+      if (!hasDragged.current && Math.hypot(dx, dy) < 4) return
+      hasDragged.current = true
+      setIsDragging(true)
+      setStageOffset(clamp(dragRef.current.ox + dx, dragRef.current.oy + dy, z))
+    }
+    const onPointerUp = () => {
+      dragRef.current = null
+      setIsDragging(false)
+      // hasDragged.current stays true until the click handler reads and resets it
+    }
+
+    el.addEventListener('wheel',        onWheel,       { passive: false })
+    el.addEventListener('pointerdown',  onPointerDown)
+    el.addEventListener('pointermove',  onPointerMove)
+    el.addEventListener('pointerup',    onPointerUp)
+    el.addEventListener('pointercancel',onPointerUp)
+    return () => {
+      el.removeEventListener('wheel',        onWheel)
+      el.removeEventListener('pointerdown',  onPointerDown)
+      el.removeEventListener('pointermove',  onPointerMove)
+      el.removeEventListener('pointerup',    onPointerUp)
+      el.removeEventListener('pointercancel',onPointerUp)
+    }
   }, [])
 
   // ── Leaflet center derived from visible game area center ─────────────
@@ -182,6 +222,8 @@ export default function GameCanvas({
   }), [stageOffset, stageZoom])
 
   const handleClick = (e: KonvaEventObject<MouseEvent>) => {
+    // If the mousedown was actually a drag, swallow the click
+    if (hasDragged.current) { hasDragged.current = false; return }
     if (state.phase !== 'playing') return
     const stage = e.target.getStage()
     const pos   = stage?.getPointerPosition()
@@ -265,9 +307,11 @@ export default function GameCanvas({
   const selBaseTeam = selection?.type === 'base' ? selection.team : null
 
   // Cursor style
-  const cursor = pendingSquadTarget
+  const cursor = (pendingSquadTarget || state.pendingAbility)
     ? 'crosshair'
-    : state.pendingAbility ? 'crosshair' : 'default'
+    : isDragging  ? 'grabbing'
+    : stageZoom > 1 ? 'grab'
+    : 'default'
 
   return (
     <div ref={wrapperRef} style={{ position: 'relative', display: 'inline-block', lineHeight: 0 }}>
