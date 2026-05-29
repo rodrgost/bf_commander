@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Stage, Layer, Rect, Circle, Text, Arc, Ring, Line, RegularPolygon } from 'react-konva'
 import type { GameState, Squad, Vec2, SelectionTarget } from '../types'
 import { MAP_W, MAP_H, BLUE_BASE, RED_BASE, squadNatoShort } from '../game/mapData'
@@ -6,6 +6,18 @@ import { VISION_RANGE } from '../game/units'
 import type { KonvaEventObject } from 'konva/lib/Node'
 import MapBackground from './MapBackground'
 import UAVOverlay from './UAVOverlay'
+
+// ── Geographic constants (must match MapBackground CENTER) ────────────────
+const BASE_LAT = 35.53438027878519
+const BASE_LON = 93.93108608227209
+
+/** Convert game coordinates to Leaflet lat/lng at a given base zoom level. */
+function gameToLatLng(gx: number, gy: number, baseZoom: number): [number, number] {
+  const mpp = 156543.03 * Math.cos(BASE_LAT * Math.PI / 180) / Math.pow(2, baseZoom)
+  const lat  = BASE_LAT - ((gy - MAP_H / 2) * mpp) / 111320
+  const lon  = BASE_LON + ((gx - MAP_W / 2) * mpp) / (111320 * Math.cos(BASE_LAT * Math.PI / 180))
+  return [lat, lon]
+}
 
 const DISPLAY_SCALE = 1.0
 
@@ -108,13 +120,58 @@ export default function GameCanvas({
 
   const selectedIds = selection?.type === 'squad' ? selection.ids : []
 
+  // ── Scroll-zoom state ─────────────────────────────────────────────────
+  const [stageZoom,   setStageZoom]   = useState(1.0)
+  const [stageOffset, setStageOffset] = useState({ x: 0, y: 0 })
+
+  // Keep a ref so the wheel listener (registered once) reads fresh values
+  const transformRef = useRef({ zoom: 1.0, offset: { x: 0, y: 0 } })
+  useEffect(() => {
+    transformRef.current = { zoom: stageZoom, offset: stageOffset }
+  }, [stageZoom, stageOffset])
+
+  const wrapperRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = wrapperRef.current
+    if (!el) return
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const { zoom: z, offset: off } = transformRef.current
+      const rect = el.getBoundingClientRect()
+      const px = e.clientX - rect.left
+      const py = e.clientY - rect.top
+      const FACTOR = 1.15
+      const newZoom = Math.max(0.5, Math.min(8, e.deltaY < 0 ? z * FACTOR : z / FACTOR))
+      setStageZoom(newZoom)
+      setStageOffset({
+        x: px - (px - off.x) * (newZoom / z),
+        y: py - (py - off.y) * (newZoom / z),
+      })
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [])
+
+  // ── Compute Leaflet center + zoom from the visible game area ──────────
+  const visGameCenter = {
+    x: (MAP_W / 2 - stageOffset.x) / stageZoom,
+    y: (MAP_H / 2 - stageOffset.y) / stageZoom,
+  }
+  const leafletCenter = gameToLatLng(visGameCenter.x, visGameCenter.y, state.mapZoom)
+  const leafletZoom   = state.mapZoom + Math.log2(stageZoom)
+
+  // ── Game-coordinate helper ─────────────────────────────────────────────
+  const toGameCoords = useCallback((screenX: number, screenY: number): Vec2 => ({
+    x: (screenX - stageOffset.x) / stageZoom,
+    y: (screenY - stageOffset.y) / stageZoom,
+  }), [stageOffset, stageZoom])
+
   const handleClick = (e: KonvaEventObject<MouseEvent>) => {
     if (state.phase !== 'playing') return
     const stage = e.target.getStage()
     const pos   = stage?.getPointerPosition()
     if (!pos) return
-    const gx = pos.x / DISPLAY_SCALE
-    const gy = pos.y / DISPLAY_SCALE
+    const { x: gx, y: gy } = toGameCoords(pos.x, pos.y)
     const ctrl = e.evt.ctrlKey || e.evt.metaKey
 
     // ── If ability pending → fire it ──────────────────────────────────────
@@ -198,9 +255,12 @@ export default function GameCanvas({
     : state.pendingAbility ? 'crosshair' : 'default'
 
   return (
-    <div style={{ position: 'relative', display: 'inline-block', lineHeight: 0 }}>
-      {/* Satellite map background */}
-      <MapBackground width={MAP_W * DISPLAY_SCALE} height={MAP_H * DISPLAY_SCALE} zoom={state.mapZoom} />
+    <div ref={wrapperRef} style={{ position: 'relative', display: 'inline-block', lineHeight: 0 }}>
+      {/* Satellite map background — follows game viewport */}
+      <MapBackground
+        width={MAP_W * DISPLAY_SCALE} height={MAP_H * DISPLAY_SCALE}
+        center={leafletCenter} zoom={leafletZoom}
+      />
 
       {/* UAV surveillance camera effects */}
       <UAVOverlay width={MAP_W * DISPLAY_SCALE} height={MAP_H * DISPLAY_SCALE} zoom={state.mapZoom} />
@@ -208,8 +268,9 @@ export default function GameCanvas({
     <Stage
       width={MAP_W * DISPLAY_SCALE}
       height={MAP_H * DISPLAY_SCALE}
-      scaleX={DISPLAY_SCALE}
-      scaleY={DISPLAY_SCALE}
+      x={stageOffset.x} y={stageOffset.y}
+      scaleX={stageZoom * DISPLAY_SCALE}
+      scaleY={stageZoom * DISPLAY_SCALE}
       onClick={handleClick}
       style={{ cursor, border: `1px solid ${C.BLUE_DIM}55`, display: 'block', position: 'relative', zIndex: 1 }}
     >
@@ -598,8 +659,15 @@ export default function GameCanvas({
         )}
       </Layer>
 
-      {/* ── MAP-EMBEDDED HUD (timer + CP score) ── */}
-      <Layer>
+      {/* ── MAP-EMBEDDED HUD (timer + CP score + tickets) ─────────────────
+           Counter-scaled so it always renders at 1:1 screen pixels,
+           regardless of the stage zoom level.                           */}
+      <Layer
+        x={-stageOffset.x / stageZoom}
+        y={-stageOffset.y / stageZoom}
+        scaleX={1 / stageZoom}
+        scaleY={1 / stageZoom}
+      >
         {(() => {
           const mono = "'Courier New', Courier, monospace"
           const hasLimit  = state.maxGameTime > 0
