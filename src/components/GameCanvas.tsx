@@ -39,8 +39,8 @@ const C = {
 }
 
 // Soldier / label sizes
-const DOT_RADIUS  = 2
-const TRI_RADIUS  = 3.2
+const DOT_RADIUS  = 1.3
+const TRI_RADIUS  = 2.0
 const LABEL_Y     = DOT_RADIUS + 11
 
 // Selection bracket
@@ -135,6 +135,13 @@ export default function GameCanvas({
   useEffect(() => { stateRef.current = { mapLevel, stageOffset, stageZoom } },
     [mapLevel, stageOffset, stageZoom])
 
+  // Clamp offset so the game world [0,MAP_W]×[0,MAP_H] always covers the
+  // full canvas — prevents blank areas at corners/edges when zooming.
+  const clampOffset = (ox: number, oy: number, zoom: number) => ({
+    x: Math.min(0, Math.max(MAP_W  * (1 - zoom), ox)),
+    y: Math.min(0, Math.max(MAP_H * (1 - zoom), oy)),
+  })
+
   const wrapperRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const el = wrapperRef.current
@@ -143,18 +150,17 @@ export default function GameCanvas({
       e.preventDefault()
       const { mapLevel: lv, stageOffset: off, stageZoom: z } = stateRef.current
       const newLevel = e.deltaY < 0
-        ? Math.min(MAX_ZOOM, lv + 1)   // scroll up  → zoom in
-        : Math.max(MIN_ZOOM, lv - 1)   // scroll down → zoom out
+        ? Math.min(MAX_ZOOM, lv + 1)
+        : Math.max(MIN_ZOOM, lv - 1)
       if (newLevel === lv) return
       const newZoom = Math.pow(2, newLevel - BASE_ZOOM)
       const rect = el.getBoundingClientRect()
       const px = e.clientX - rect.left
       const py = e.clientY - rect.top
+      const rawX = px - (px - off.x) * (newZoom / z)
+      const rawY = py - (py - off.y) * (newZoom / z)
       setMapLevel(newLevel)
-      setStageOffset({
-        x: px - (px - off.x) * (newZoom / z),
-        y: py - (py - off.y) * (newZoom / z),
-      })
+      setStageOffset(clampOffset(rawX, rawY, newZoom))
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
