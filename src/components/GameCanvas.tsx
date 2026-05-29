@@ -313,7 +313,7 @@ export default function GameCanvas({
                 <>
                   <Rect x={cp.position.x} y={cp.position.y}
                     width={22} height={22} offsetX={11} offsetY={11}
-                    fill="transparent" stroke={stroke} strokeWidth={0.5}
+                    fill="transparent" strokeWidth={0}
                     shadowColor={stroke} shadowBlur={18} shadowOpacity={0.95}
                   />
                   <Rect x={cp.position.x} y={cp.position.y}
@@ -326,7 +326,7 @@ export default function GameCanvas({
                 <>
                   <RegularPolygon x={cp.position.x} y={cp.position.y}
                     sides={6} radius={13}
-                    fill="transparent" stroke={stroke} strokeWidth={0.5}
+                    fill="transparent" strokeWidth={0}
                     shadowColor={stroke} shadowBlur={18} shadowOpacity={0.95}
                   />
                   <RegularPolygon x={cp.position.x} y={cp.position.y}
@@ -339,7 +339,7 @@ export default function GameCanvas({
                 <>
                   <Rect x={cp.position.x} y={cp.position.y}
                     width={22} height={22} offsetX={11} offsetY={11} rotation={45}
-                    fill="transparent" stroke={stroke} strokeWidth={0.5}
+                    fill="transparent" strokeWidth={0}
                     shadowColor={stroke} shadowBlur={18} shadowOpacity={0.95}
                   />
                   <Rect x={cp.position.x} y={cp.position.y}
