@@ -120,15 +120,20 @@ export default function GameCanvas({
 
   const selectedIds = selection?.type === 'squad' ? selection.ids : []
 
-  // ── Scroll-zoom state ─────────────────────────────────────────────────
-  const [stageZoom,   setStageZoom]   = useState(1.0)
+  // ── Discrete scroll-zoom (integer Leaflet levels 14–17) ───────────────
+  // stageZoom = 2^(mapLevel - BASE_ZOOM) so each Leaflet step exactly
+  // doubles the Konva scale → map tiles and game elements stay in sync.
+  const BASE_ZOOM   = 14
+  const MIN_ZOOM    = 14
+  const MAX_ZOOM    = 17
+  const [mapLevel,    setMapLevel]    = useState(state.mapZoom)
   const [stageOffset, setStageOffset] = useState({ x: 0, y: 0 })
+  const stageZoom = Math.pow(2, mapLevel - BASE_ZOOM)   // 1 | 2 | 4 | 8
 
-  // Keep a ref so the wheel listener (registered once) reads fresh values
-  const transformRef = useRef({ zoom: 1.0, offset: { x: 0, y: 0 } })
-  useEffect(() => {
-    transformRef.current = { zoom: stageZoom, offset: stageOffset }
-  }, [stageZoom, stageOffset])
+  // Ref so the wheel listener (registered once) reads fresh values
+  const stateRef = useRef({ mapLevel, stageOffset, stageZoom })
+  useEffect(() => { stateRef.current = { mapLevel, stageOffset, stageZoom } },
+    [mapLevel, stageOffset, stageZoom])
 
   const wrapperRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -136,13 +141,16 @@ export default function GameCanvas({
     if (!el) return
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()
-      const { zoom: z, offset: off } = transformRef.current
+      const { mapLevel: lv, stageOffset: off, stageZoom: z } = stateRef.current
+      const newLevel = e.deltaY < 0
+        ? Math.min(MAX_ZOOM, lv + 1)   // scroll up  → zoom in
+        : Math.max(MIN_ZOOM, lv - 1)   // scroll down → zoom out
+      if (newLevel === lv) return
+      const newZoom = Math.pow(2, newLevel - BASE_ZOOM)
       const rect = el.getBoundingClientRect()
       const px = e.clientX - rect.left
       const py = e.clientY - rect.top
-      const FACTOR = 1.15
-      const newZoom = Math.max(0.5, Math.min(8, e.deltaY < 0 ? z * FACTOR : z / FACTOR))
-      setStageZoom(newZoom)
+      setMapLevel(newLevel)
       setStageOffset({
         x: px - (px - off.x) * (newZoom / z),
         y: py - (py - off.y) * (newZoom / z),
@@ -152,13 +160,14 @@ export default function GameCanvas({
     return () => el.removeEventListener('wheel', onWheel)
   }, [])
 
-  // ── Compute Leaflet center + zoom from the visible game area ──────────
+  // ── Leaflet center derived from visible game area center ─────────────
+  // At BASE_ZOOM (14) the full game world fits at stageZoom=1.
+  // Each additional level doubles scale → halves the visible game area.
   const visGameCenter = {
     x: (MAP_W / 2 - stageOffset.x) / stageZoom,
     y: (MAP_H / 2 - stageOffset.y) / stageZoom,
   }
-  const leafletCenter = gameToLatLng(visGameCenter.x, visGameCenter.y, state.mapZoom)
-  const leafletZoom   = state.mapZoom + Math.log2(stageZoom)
+  const leafletCenter = gameToLatLng(visGameCenter.x, visGameCenter.y, BASE_ZOOM)
 
   // ── Game-coordinate helper ─────────────────────────────────────────────
   const toGameCoords = useCallback((screenX: number, screenY: number): Vec2 => ({
@@ -259,11 +268,11 @@ export default function GameCanvas({
       {/* Satellite map background — follows game viewport */}
       <MapBackground
         width={MAP_W * DISPLAY_SCALE} height={MAP_H * DISPLAY_SCALE}
-        center={leafletCenter} zoom={leafletZoom}
+        center={leafletCenter} zoom={mapLevel}
       />
 
       {/* UAV surveillance camera effects */}
-      <UAVOverlay width={MAP_W * DISPLAY_SCALE} height={MAP_H * DISPLAY_SCALE} zoom={state.mapZoom} />
+      <UAVOverlay width={MAP_W * DISPLAY_SCALE} height={MAP_H * DISPLAY_SCALE} zoom={mapLevel} />
 
     <Stage
       width={MAP_W * DISPLAY_SCALE}
