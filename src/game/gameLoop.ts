@@ -139,22 +139,31 @@ function processDeaths(
 }
 
 // ── Victory condition ─────────────────────────────────────────────────────
-// Draw is checked FIRST to avoid sequential bias.
-// Tickets can only end the game after minGameTime.
+// Two ways to end:
+//   1. Tickets → checked after minGameTime (draw checked first for fairness)
+//   2. Time limit → when elapsed >= maxGameTime, winner decided by ticket count
 
 function checkVictory(
   state: GameState,
   blueTickets: number,
   redTickets: number,
 ): GamePhase {
-  if (state.elapsed < state.minGameTime) return 'playing'
+  // 1. Ticket exhaustion (only after minGameTime)
+  if (state.elapsed >= state.minGameTime) {
+    const blueDead = blueTickets <= 0
+    const redDead  = redTickets  <= 0
+    if (blueDead && redDead) return 'draw'
+    if (blueDead)            return 'defeat'
+    if (redDead)             return 'victory'
+  }
 
-  const blueDead = blueTickets <= 0
-  const redDead  = redTickets  <= 0
+  // 2. Hard time limit
+  if (state.maxGameTime > 0 && state.elapsed >= state.maxGameTime) {
+    if (blueTickets > redTickets) return 'victory'
+    if (redTickets  > blueTickets) return 'defeat'
+    return 'draw'
+  }
 
-  if (blueDead && redDead) return 'draw'     // simultaneous — no sequential bias
-  if (blueDead)            return 'defeat'
-  if (redDead)             return 'victory'
   return 'playing'
 }
 

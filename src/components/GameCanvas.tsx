@@ -585,13 +585,12 @@ export default function GameCanvas({
               fontSize={52} fontStyle="bold"
             />
             <Text x={0} y={MAP_H / 2 + 16} width={MAP_W} align="center"
-              text={
-                state.phase === 'draw'
-                  ? 'Ambos os times ficaram sem tickets ao mesmo tempo'
-                  : state.phase === 'victory'
-                    ? 'O inimigo ficou sem reforços'
-                    : 'Seus reforços acabaram'
-              }
+              text={(() => {
+                const timesUp = state.maxGameTime > 0 && state.elapsed >= state.maxGameTime
+                if (state.phase === 'draw')    return timesUp ? 'Tempo esgotado — tickets empatados' : 'Ambos os times ficaram sem tickets'
+                if (state.phase === 'victory') return timesUp ? 'Tempo esgotado — US tinha mais tickets' : 'O inimigo ficou sem reforços'
+                return timesUp ? 'Tempo esgotado — CN tinha mais tickets' : 'Seus reforços acabaram'
+              })()}
               fill="#6a8090" fontSize={15}
             />
             <Text x={0} y={MAP_H / 2 + 44} width={MAP_W} align="center"

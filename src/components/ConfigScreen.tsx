@@ -138,6 +138,7 @@ export default function ConfigScreen({ onStart }: Props) {
   const [cpCount,        setCpCount]        = useState<1 | 3 | 5>(3)
   const [initialTickets, setInitialTickets] = useState(200)
   const [difficulty,     setDifficulty]     = useState<Difficulty>('normal')
+  const [maxGameTime,    setMaxGameTime]    = useState(600)   // seconds; 0 = unlimited
 
   const diffColor = DIFF_COLOR[difficulty]
 
@@ -254,6 +255,24 @@ export default function ConfigScreen({ onStart }: Props) {
             </div>
 
           </div>
+
+          {/* ── Duration — full width below ── */}
+          <div style={{ marginTop: 12 }}>
+            <BtnGroup
+              label="Duração da partida"
+              options={[
+                { value: 300,  label: '5min'  },
+                { value: 600,  label: '10min', sub: 'padrão' },
+                { value: 900,  label: '15min' },
+                { value: 1200, label: '20min' },
+                { value: 0,    label: '∞',    sub: 'sem fim' },
+              ]}
+              value={maxGameTime}
+              onChange={setMaxGameTime}
+              color={C.green}
+            />
+          </div>
+
         </div>
 
         {/* ── Summary + Start ── */}
@@ -267,6 +286,7 @@ export default function ConfigScreen({ onStart }: Props) {
             { color: C.neutral, val: `${cpCount} CP`, label: 'map' },
             { color: C.cooldown,val: initialTickets,  label: 'tkts'},
             { color: diffColor, val: difficulty[0].toUpperCase(), label: 'dif' },
+            { color: C.green,   val: maxGameTime > 0 ? `${maxGameTime / 60}m` : '∞', label: 'tempo' },
           ].map(({ color, val, label }) => (
             <div key={label} style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -283,7 +303,7 @@ export default function ConfigScreen({ onStart }: Props) {
 
           {/* Start button — takes remaining space */}
           <button
-            onClick={() => onStart({ blueSquads, redSquads, cpCount, initialTickets, difficulty })}
+            onClick={() => onStart({ blueSquads, redSquads, cpCount, initialTickets, difficulty, maxGameTime })}
             style={{
               flex: 1,
               padding: '12px 0',

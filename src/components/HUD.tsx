@@ -88,12 +88,23 @@ export default function HUD({ state, onRestart }: Props) {
   const locked   = state.elapsed < state.minGameTime
   const timeLeft = Math.max(0, state.minGameTime - state.elapsed)
 
+  // ── Timer display ─────────────────────────────────────────────────────
+  // If a time limit is set: show countdown; otherwise show elapsed time.
+  const hasLimit  = state.maxGameTime > 0
+  const remaining = hasLimit ? Math.max(0, state.maxGameTime - state.elapsed) : 0
+  const urgent    = hasLimit && remaining <= 60 && state.phase === 'playing'
+  const timerText = hasLimit ? formatTime(remaining) : formatTime(state.elapsed)
+  const timerColor = urgent
+    ? (Math.floor(state.elapsed * 2) % 2 === 0 ? '#FF3333' : '#FF6633')  // blink between two reds
+    : '#FFCC00'
+
   return (
     <div className={styles.hud}>
 
       {/* ── Timer ── */}
       <div className={styles.section}>
-        <span className={styles.timer}>{formatTime(state.elapsed)}</span>
+        {hasLimit && <span style={{ fontSize: 8, color: '#2e4557', marginRight: 3, fontFamily: 'Courier New, monospace' }}>⏱</span>}
+        <span className={styles.timer} style={{ color: timerColor }}>{timerText}</span>
       </div>
 
       {/* ── US Tickets ── */}
