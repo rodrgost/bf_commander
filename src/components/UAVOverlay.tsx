@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 interface Props {
   width:  number
   height: number
+  zoom:   number
 }
 
 const LAT  = 35.53438027878519
@@ -31,7 +32,7 @@ function nowString() {
   return `${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())}`
 }
 
-export default function UAVOverlay({ width, height }: Props) {
+export default function UAVOverlay({ width, height, zoom }: Props) {
   const [time, setTime] = useState(nowString)
   const [frame, setFrame] = useState(0)
 
@@ -216,7 +217,7 @@ export default function UAVOverlay({ width, height }: Props) {
       }}>
         <span style={{ ...dimText, fontSize:8 }}>MQ-9 REAPER · EO/IR</span>
         <span style={{ ...text, fontSize:8 }}>
-          ZOOM 16× &nbsp; FOCUS AUTO
+          ZOOM {zoom}× &nbsp; FOCUS AUTO
         </span>
       </div>
 

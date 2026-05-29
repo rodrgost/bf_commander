@@ -203,7 +203,7 @@ export default function GameCanvas({
       <MapBackground width={MAP_W * DISPLAY_SCALE} height={MAP_H * DISPLAY_SCALE} zoom={state.mapZoom} />
 
       {/* UAV surveillance camera effects */}
-      <UAVOverlay width={MAP_W * DISPLAY_SCALE} height={MAP_H * DISPLAY_SCALE} />
+      <UAVOverlay width={MAP_W * DISPLAY_SCALE} height={MAP_H * DISPLAY_SCALE} zoom={state.mapZoom} />
 
     <Stage
       width={MAP_W * DISPLAY_SCALE}
