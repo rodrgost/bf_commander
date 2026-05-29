@@ -300,20 +300,52 @@ export default function GameCanvas({
                 />
               )}
 
-              {/* Outer glow halo */}
-              <Rect x={cp.position.x} y={cp.position.y}
-                width={22} height={22} offsetX={11} offsetY={11} rotation={45}
-                fill="transparent" stroke={stroke} strokeWidth={0.5}
-                shadowColor={stroke} shadowBlur={18} shadowOpacity={0.95}
-              />
+              {/* Shape depends on ownership:
+                    neutral → diamond (rotated square)
+                    blue    → axis-aligned square
+                    red     → hexagon                   */}
+              {cp.owner === 'blue' ? (
+                // ── Square (axis-aligned) ──────────────────────────────────
+                <>
+                  <Rect x={cp.position.x} y={cp.position.y}
+                    width={22} height={22} offsetX={11} offsetY={11}
+                    fill="transparent" stroke={stroke} strokeWidth={0.5}
+                    shadowColor={stroke} shadowBlur={18} shadowOpacity={0.95}
+                  />
+                  <Rect x={cp.position.x} y={cp.position.y}
+                    width={16} height={16} offsetX={8} offsetY={8}
+                    fill={fill} stroke={stroke} strokeWidth={1.5}
+                  />
+                </>
+              ) : cp.owner === 'red' ? (
+                // ── Hexagon ───────────────────────────────────────────────
+                <>
+                  <RegularPolygon x={cp.position.x} y={cp.position.y}
+                    sides={6} radius={13}
+                    fill="transparent" stroke={stroke} strokeWidth={0.5}
+                    shadowColor={stroke} shadowBlur={18} shadowOpacity={0.95}
+                  />
+                  <RegularPolygon x={cp.position.x} y={cp.position.y}
+                    sides={6} radius={10}
+                    fill={fill} stroke={stroke} strokeWidth={1.5}
+                  />
+                </>
+              ) : (
+                // ── Diamond / neutral (rotated square) ───────────────────
+                <>
+                  <Rect x={cp.position.x} y={cp.position.y}
+                    width={22} height={22} offsetX={11} offsetY={11} rotation={45}
+                    fill="transparent" stroke={stroke} strokeWidth={0.5}
+                    shadowColor={stroke} shadowBlur={18} shadowOpacity={0.95}
+                  />
+                  <Rect x={cp.position.x} y={cp.position.y}
+                    width={16} height={16} offsetX={8} offsetY={8} rotation={45}
+                    fill={fill} stroke={stroke} strokeWidth={1.5}
+                  />
+                </>
+              )}
 
-              {/* Diamond body */}
-              <Rect x={cp.position.x} y={cp.position.y}
-                width={16} height={16} offsetX={8} offsetY={8} rotation={45}
-                fill={fill} stroke={stroke} strokeWidth={1.5}
-              />
-
-              {/* Initial letter */}
+              {/* Initial letter — centred over any shape */}
               <Text x={cp.position.x - 7} y={cp.position.y - 5}
                 text={letter} fill="#ffffff" fontSize={9} fontStyle="bold"
                 width={14} align="center"
