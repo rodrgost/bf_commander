@@ -4,6 +4,7 @@ import type { GameState, Squad, Vec2, SelectionTarget } from '../types'
 import { MAP_W, MAP_H, BLUE_BASE, RED_BASE, squadNatoShort } from '../game/mapData'
 import { VISION_RANGE } from '../game/units'
 import type { KonvaEventObject } from 'konva/lib/Node'
+import MapBackground from './MapBackground'
 
 const DISPLAY_SCALE = 1.0
 
@@ -196,24 +197,29 @@ export default function GameCanvas({
     : state.pendingAbility ? 'crosshair' : 'default'
 
   return (
+    <div style={{ position: 'relative', display: 'inline-block', lineHeight: 0 }}>
+      {/* Satellite map background */}
+      <MapBackground width={MAP_W * DISPLAY_SCALE} height={MAP_H * DISPLAY_SCALE} />
+
     <Stage
       width={MAP_W * DISPLAY_SCALE}
       height={MAP_H * DISPLAY_SCALE}
       scaleX={DISPLAY_SCALE}
       scaleY={DISPLAY_SCALE}
       onClick={handleClick}
-      style={{ cursor, border: `1px solid ${C.BLUE_DIM}55`, display: 'block' }}
+      style={{ cursor, border: `1px solid ${C.BLUE_DIM}55`, display: 'block', position: 'relative', zIndex: 1 }}
     >
-      {/* ── BACKGROUND ── */}
+      {/* ── BACKGROUND (transparent — satellite map shows through) ── */}
       <Layer>
-        <Rect x={0} y={0} width={MAP_W} height={MAP_H} fill={C.MAP_BG} />
+        {/* Very subtle dark vignette to ground the game elements */}
+        <Rect x={0} y={0} width={MAP_W} height={MAP_H} fill="rgba(4,9,15,0.30)" />
 
-        {/* Grid */}
+        {/* Military grid — slightly more visible over satellite */}
         {Array.from({ length: Math.floor(MAP_W / 100) + 1 }).map((_, i) => (
-          <Rect key={`gv${i}`} x={i * 100} y={0} width={1} height={MAP_H} fill={C.GRID} />
+          <Rect key={`gv${i}`} x={i * 100} y={0} width={1} height={MAP_H} fill="#ffffff09" />
         ))}
         {Array.from({ length: Math.floor(MAP_H / 100) + 1 }).map((_, i) => (
-          <Rect key={`gh${i}`} x={0} y={i * 100} width={MAP_W} height={1} fill={C.GRID} />
+          <Rect key={`gh${i}`} x={0} y={i * 100} width={MAP_W} height={1} fill="#ffffff09" />
         ))}
 
         {/* ── BASES ── */}
@@ -601,5 +607,6 @@ export default function GameCanvas({
         )}
       </Layer>
     </Stage>
+    </div>
   )
 }
