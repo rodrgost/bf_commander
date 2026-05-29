@@ -3,34 +3,30 @@ import { Stage, Layer, Rect, Circle, Text, Arc, Ring, Line, RegularPolygon } fro
 import type { GameState, Squad, Vec2, SelectionTarget } from '../types'
 import { MAP_W, MAP_H, BLUE_BASE, RED_BASE } from '../game/mapData'
 import { VISION_RANGE } from '../game/units'
+import type { KonvaEventObject } from 'konva/lib/Node'
 
 const DISPLAY_SCALE = 1.0
 
 // ── BF4 colour palette ────────────────────────────────────────────────────
 const C = {
-  // Allied (US)
   BLUE:         '#00C8FF',
   BLUE_DIM:     '#0065CC',
   BLUE_BG:      '#03101a',
-  // Enemy (CN)
   RED:          '#FF6633',
   RED_DIM:      '#CC3300',
   RED_BG:       '#1a0800',
-  // States
   NEUTRAL:      '#555880',
   NEUTRAL_BG:   '#0d0d14',
   COOLDOWN:     '#FFCC00',
   SUPPRESS:     '#a855f7',
-  // Map
   MAP_BG:       '#111A22',
   GRID:         '#ffffff06',
-  // Text
   TEXT_DIM:     '#4a6278',
 }
 
 // Soldier / label sizes
 const DOT_RADIUS  = 2
-const TRI_RADIUS  = 3.2   // slightly larger so triangle reads clearly
+const TRI_RADIUS  = 3.2
 const LABEL_Y     = DOT_RADIUS + 11
 
 // Selection bracket
@@ -61,10 +57,12 @@ const ROLE_STROKE: Record<string, string> = {
 }
 
 interface Props {
-  state:      GameState
-  onMapClick: (pos: Vec2) => void
-  selection:  SelectionTarget | null
-  onSelect:   (sel: SelectionTarget | null) => void
+  state:              GameState
+  onMapClick:         (pos: Vec2) => void
+  selection:          SelectionTarget | null
+  onSelect:           (sel: SelectionTarget | null) => void
+  pendingSquadTarget: boolean
+  onSquadTarget:      (cpId: string) => void
 }
 
 function isEnemyVisible(state: GameState, squad: Squad): boolean {
@@ -83,9 +81,15 @@ function isEnemyVisible(state: GameState, squad: Squad): boolean {
 }
 
 // Squad action tag text: "B2 / ATK A", "R1 / DEF B", …
-function actionTag(squad: Squad, cps: typeof state.controlPoints): string {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function actionTag(squad: Squad, cps: any[]): string {
+  // Show manual target indicator
+  if (squad.manualTargetCpId) {
+    const cp = cps.find((c: { id: string; label: string }) => c.id === squad.manualTargetCpId)
+    if (cp) return `${squad.id.toUpperCase()} ▶ ${cp.label[0]}`
+  }
   if (!squad.targetCpId) return squad.id.toUpperCase()
-  const cp = cps.find(c => c.id === squad.targetCpId)
+  const cp = cps.find((c: { id: string; label: string }) => c.id === squad.targetCpId)
   if (!cp) return squad.id.toUpperCase()
   const verb =
     squad.role === 'defend'  ? 'DEF' :
@@ -94,42 +98,64 @@ function actionTag(squad: Squad, cps: typeof state.controlPoints): string {
   return `${squad.id.toUpperCase()} / ${verb} ${cp.label[0]}`
 }
 
-export default function GameCanvas({ state, onMapClick, selection, onSelect }: Props) {
+export default function GameCanvas({
+  state, onMapClick, selection, onSelect,
+  pendingSquadTarget, onSquadTarget,
+}: Props) {
 
-  const handleClick = (e: { target: { getStage: () => { getPointerPosition: () => Vec2 | null } } }) => {
+  const selectedIds = selection?.type === 'squad' ? selection.ids : []
+
+  const handleClick = (e: KonvaEventObject<MouseEvent>) => {
     if (state.phase !== 'playing') return
     const stage = e.target.getStage()
-    const pos   = stage.getPointerPosition()
+    const pos   = stage?.getPointerPosition()
     if (!pos) return
     const gx = pos.x / DISPLAY_SCALE
     const gy = pos.y / DISPLAY_SCALE
+    const ctrl = e.evt.ctrlKey || e.evt.metaKey
 
+    // ── If ability pending → fire it ──────────────────────────────────────
     if (state.pendingAbility) { onMapClick({ x: gx, y: gy }); return }
 
-    // Priority 1 — CPs
+    // ── If squad-target mode → clicking a CP sets manual target ───────────
+    if (pendingSquadTarget) {
+      for (const cp of state.controlPoints) {
+        if (Math.hypot(cp.position.x - gx, cp.position.y - gy) < CLICK_CP_R) {
+          onSquadTarget(cp.id)
+          return
+        }
+      }
+      // Clicked empty space — cancel target mode (App toggles pendingSquadTarget off via onSelect)
+      onSelect(selection)   // keep squad selection, just exit target mode
+      return
+    }
+
+    // ── Priority 1 — CPs ──────────────────────────────────────────────────
     let nearCp: typeof state.controlPoints[0] | null = null
     let nearCpD = CLICK_CP_R
     for (const cp of state.controlPoints) {
       const d = Math.hypot(cp.position.x - gx, cp.position.y - gy)
       if (d < nearCpD) { nearCpD = d; nearCp = cp }
     }
-    if (nearCp) {
+    if (nearCp && !ctrl) {
       const sel: SelectionTarget = { type: 'cp', id: nearCp.id }
       onSelect(selection?.type === 'cp' && selection.id === nearCp.id ? null : sel)
       return
     }
 
-    // Priority 2 — Bases
-    if (Math.hypot(BLUE_BASE.x - gx, BLUE_BASE.y - gy) < CLICK_BASE_R) {
-      onSelect(selection?.type === 'base' && selection.team === 'blue' ? null : { type: 'base', team: 'blue' })
-      return
-    }
-    if (Math.hypot(RED_BASE.x - gx, RED_BASE.y - gy) < CLICK_BASE_R) {
-      onSelect(selection?.type === 'base' && selection.team === 'red' ? null : { type: 'base', team: 'red' })
-      return
+    // ── Priority 2 — Bases ────────────────────────────────────────────────
+    if (!ctrl) {
+      if (Math.hypot(BLUE_BASE.x - gx, BLUE_BASE.y - gy) < CLICK_BASE_R) {
+        onSelect(selection?.type === 'base' && selection.team === 'blue' ? null : { type: 'base', team: 'blue' })
+        return
+      }
+      if (Math.hypot(RED_BASE.x - gx, RED_BASE.y - gy) < CLICK_BASE_R) {
+        onSelect(selection?.type === 'base' && selection.team === 'red' ? null : { type: 'base', team: 'red' })
+        return
+      }
     }
 
-    // Priority 3 — Blue squad soldiers
+    // ── Priority 3 — Blue squad soldiers (supports Ctrl+click multi-select)
     let best: { squad: Squad; dist: number } | null = null
     for (const sq of state.squads) {
       if (sq.team !== 'blue' || sq.status === 'dead') continue
@@ -140,19 +166,33 @@ export default function GameCanvas({ state, onMapClick, selection, onSelect }: P
       }
     }
     if (best) {
-      const sel: SelectionTarget = { type: 'squad', id: best.squad.id }
-      onSelect(selection?.type === 'squad' && selection.id === best.squad.id ? null : sel)
+      const clickedId = best.squad.id
+      if (ctrl && selectedIds.length > 0) {
+        // Ctrl+click: toggle this squad in multi-selection
+        const newIds = selectedIds.includes(clickedId)
+          ? selectedIds.filter(id => id !== clickedId)   // remove if already selected
+          : [...selectedIds, clickedId]                   // add if not selected
+        onSelect(newIds.length > 0 ? { type: 'squad', ids: newIds } : null)
+      } else {
+        // Regular click: single-select (or deselect if same)
+        const alreadySel = selection?.type === 'squad' && selection.ids.length === 1 && selection.ids[0] === clickedId
+        onSelect(alreadySel ? null : { type: 'squad', ids: [clickedId] })
+      }
       return
     }
 
+    // ── Nothing hit → deselect ────────────────────────────────────────────
     onSelect(null)
   }
 
-  const selSquad   = selection?.type === 'squad'
-    ? state.squads.find(s => s.id === selection.id && s.status !== 'dead') ?? null : null
-  const selCp      = selection?.type === 'cp'
+  const selCp       = selection?.type === 'cp'
     ? state.controlPoints.find(c => c.id === selection.id) ?? null : null
   const selBaseTeam = selection?.type === 'base' ? selection.team : null
+
+  // Cursor style
+  const cursor = pendingSquadTarget
+    ? 'crosshair'
+    : state.pendingAbility ? 'crosshair' : 'default'
 
   return (
     <Stage
@@ -161,11 +201,7 @@ export default function GameCanvas({ state, onMapClick, selection, onSelect }: P
       scaleX={DISPLAY_SCALE}
       scaleY={DISPLAY_SCALE}
       onClick={handleClick}
-      style={{
-        cursor: state.pendingAbility ? 'crosshair' : 'default',
-        border: `1px solid ${C.BLUE_DIM}55`,
-        display: 'block',
-      }}
+      style={{ cursor, border: `1px solid ${C.BLUE_DIM}55`, display: 'block' }}
     >
       {/* ── BACKGROUND ── */}
       <Layer>
@@ -223,6 +259,12 @@ export default function GameCanvas({ state, onMapClick, selection, onSelect }: P
           const letter  = cp.label[0]
           const isSel   = selCp?.id === cp.id
 
+          // Highlight CPs that are manual targets of selected squads
+          const isManualTarget = selectedIds.some(id => {
+            const sq = state.squads.find(s => s.id === id)
+            return sq?.manualTargetCpId === cp.id
+          })
+
           return (
             <React.Fragment key={cp.id}>
               {/* Capture progress arc */}
@@ -232,6 +274,14 @@ export default function GameCanvas({ state, onMapClick, selection, onSelect }: P
                   innerRadius={14} outerRadius={17}
                   angle={cp.captureProgress * 360} rotation={-90}
                   fill={cp.cappingTeam === 'blue' ? C.BLUE + 'aa' : C.RED + 'aa'}
+                />
+              )}
+
+              {/* Manual target glow */}
+              {isManualTarget && (
+                <Ring x={cp.position.x} y={cp.position.y}
+                  innerRadius={22} outerRadius={26}
+                  fill={C.COOLDOWN} opacity={0.6}
                 />
               )}
 
@@ -261,6 +311,14 @@ export default function GameCanvas({ state, onMapClick, selection, onSelect }: P
                 text={letter} fill="#ffffff" fontSize={9} fontStyle="bold"
                 width={14} align="center"
               />
+
+              {/* "Click to assign" hint when in target-pick mode */}
+              {pendingSquadTarget && (
+                <Ring x={cp.position.x} y={cp.position.y}
+                  innerRadius={28} outerRadius={31}
+                  fill={C.COOLDOWN} opacity={0.5}
+                />
+              )}
             </React.Fragment>
           )
         })}
@@ -368,10 +426,11 @@ export default function GameCanvas({ state, onMapClick, selection, onSelect }: P
           const cx         = squad.position.x
           const cy         = squad.position.y
 
-          // Action tag text
           const tag      = isBlue ? actionTag(squad, state.controlPoints) : squad.id.toUpperCase()
-          const tagColor = suppressed ? C.SUPPRESS : isBlue ? C.BLUE : C.RED
-          const tagW     = 58   // wider to fit "B2 / ATK A"
+          const tagColor = suppressed ? C.SUPPRESS
+            : squad.berserker    ? '#FF3366'     // berserker = bright magenta-red
+            : isBlue             ? C.BLUE : C.RED
+          const tagW = 64
 
           return (
             <React.Fragment key={squad.id}>
@@ -394,7 +453,9 @@ export default function GameCanvas({ state, onMapClick, selection, onSelect }: P
                 if (sol.hp <= 0) return null
                 const solHpPct = sol.hp / sol.maxHp
                 const BAR_W    = 6
-                const solColor = suppressed ? C.SUPPRESS : isBlue ? C.BLUE : C.RED
+                const solColor = suppressed ? C.SUPPRESS
+                  : squad.berserker && isBlue ? '#FF3366'
+                  : isBlue ? C.BLUE : C.RED
 
                 return (
                   <React.Fragment key={sol.id}>
@@ -415,8 +476,8 @@ export default function GameCanvas({ state, onMapClick, selection, onSelect }: P
                       <Circle
                         x={sol.position.x} y={sol.position.y}
                         radius={DOT_RADIUS}
-                        fill={suppressed ? C.SUPPRESS : C.BLUE}
-                        stroke={suppressed ? C.SUPPRESS : ROLE_STROKE[squad.role]}
+                        fill={suppressed ? C.SUPPRESS : solColor}
+                        stroke={suppressed ? C.SUPPRESS : squad.berserker ? '#FF3366' : ROLE_STROKE[squad.role]}
                         strokeWidth={1}
                         opacity={suppressed ? 0.45 : 0.4 + solHpPct * 0.6}
                       />
@@ -439,34 +500,44 @@ export default function GameCanvas({ state, onMapClick, selection, onSelect }: P
         })}
       </Layer>
 
-      {/* ── SELECTION (brackets + crosshair + action line) ── */}
+      {/* ── SELECTION (brackets + crosshair + action lines) ── */}
       <Layer>
-        {selSquad && (() => {
-          const cx = selSquad.position.x
-          const cy = selSquad.position.y
+        {selectedIds.map(sqId => {
+          const sq = state.squads.find(s => s.id === sqId && s.status !== 'dead')
+          if (!sq) return null
+          const cx = sq.position.x
+          const cy = sq.position.y
           const S  = SEL_HALF
           const L  = SEL_LEG
 
-          // Dashed line to target CP
-          const targetCp = selSquad.targetCpId
-            ? state.controlPoints.find(c => c.id === selSquad.targetCpId) : null
+          // Dashed line to manual target (yellow) or AI target (blue)
+          const manualCp = sq.manualTargetCpId
+            ? state.controlPoints.find(c => c.id === sq.manualTargetCpId) : null
+          const aiCp = !manualCp && sq.targetCpId
+            ? state.controlPoints.find(c => c.id === sq.targetCpId) : null
+          const targetCp = manualCp ?? aiCp
+
+          const onlyOne = selectedIds.length === 1
 
           return (
-            <>
-              {/* Dashed line to target CP */}
+            <React.Fragment key={sqId}>
+              {/* Line to target CP */}
               {targetCp && (
                 <Line
                   points={[cx, cy, targetCp.position.x, targetCp.position.y]}
-                  stroke={C.BLUE} strokeWidth={1}
-                  dash={[5, 4]} opacity={0.45}
+                  stroke={manualCp ? C.COOLDOWN : C.BLUE}
+                  strokeWidth={manualCp ? 1.5 : 1}
+                  dash={[5, 4]} opacity={0.55}
                 />
               )}
 
-              {/* Crosshair */}
-              <Line points={[0, cy, MAP_W, cy]}
-                stroke="#ffffff" strokeWidth={0.5} opacity={0.15} />
-              <Line points={[cx, 0, cx, MAP_H]}
-                stroke="#ffffff" strokeWidth={0.5} opacity={0.15} />
+              {/* Crosshair only when single-selected */}
+              {onlyOne && <>
+                <Line points={[0, cy, MAP_W, cy]}
+                  stroke="#ffffff" strokeWidth={0.5} opacity={0.12} />
+                <Line points={[cx, 0, cx, MAP_H]}
+                  stroke="#ffffff" strokeWidth={0.5} opacity={0.12} />
+              </>}
 
               {/* Corner brackets */}
               <Line points={[cx-S+L, cy-S, cx-S, cy-S, cx-S, cy-S+L]}
@@ -477,9 +548,20 @@ export default function GameCanvas({ state, onMapClick, selection, onSelect }: P
                 stroke="#ffffff" strokeWidth={1.5} opacity={0.95} lineJoin="miter" />
               <Line points={[cx+S-L, cy+S, cx+S, cy+S, cx+S, cy+S-L]}
                 stroke="#ffffff" strokeWidth={1.5} opacity={0.95} lineJoin="miter" />
-            </>
+            </React.Fragment>
           )
-        })()}
+        })}
+
+        {/* Squad-target mode hint banner */}
+        {pendingSquadTarget && (
+          <>
+            <Rect x={0} y={0} width={MAP_W} height={18} fill="rgba(255,204,0,0.12)" />
+            <Text x={0} y={3} width={MAP_W} align="center"
+              text={`🎯 CLIQUE EM UM PONTO DE CONTROLE PARA DESIGNAR ALVO  (${selectedIds.length} squad${selectedIds.length > 1 ? 's' : ''})`}
+              fill={C.COOLDOWN} fontSize={8} fontStyle="bold"
+            />
+          </>
+        )}
       </Layer>
 
       {/* ── GAME OVER OVERLAY ── */}

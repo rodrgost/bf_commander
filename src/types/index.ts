@@ -41,6 +41,10 @@ export interface Squad {
   suppressedTimer: number   // seconds remaining for EMP suppress
   revealedTimer: number     // seconds remaining for UAV reveal (enemies)
   respawnTimer: number      // > 0 while waiting to respawn at base (squad is 'dead')
+  // ── Commander squad orders ──────────────────────────────────────────────
+  holdUntilHealed: boolean      // retreat until 100 % HP, then resume normal AI
+  berserker: boolean            // never retreat — attack until dead
+  manualTargetCpId: string | null  // commander-assigned attack target (overrides AI)
 }
 
 export interface ControlPoint {
@@ -71,7 +75,7 @@ export interface AbilityState {
 }
 
 export type SelectionTarget =
-  | { type: 'squad'; id: string }
+  | { type: 'squad'; ids: string[] }   // one or more blue squads (Ctrl+click adds to selection)
   | { type: 'cp';    id: string }
   | { type: 'base';  team: Team }
 

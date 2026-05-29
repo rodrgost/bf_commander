@@ -158,6 +158,25 @@ export function useGameLoop(config: GameConfig) {
     })
   }, [])
 
+  // Set per-squad commander orders for one or more blue squads
+  const setSquadOrders = useCallback((
+    ids: string[],
+    opts: { holdUntilHealed?: boolean; berserker?: boolean; manualTargetCpId?: string | null },
+  ) => {
+    setRenderState(s => ({
+      ...s,
+      squads: s.squads.map(sq => {
+        if (!ids.includes(sq.id)) return sq
+        return {
+          ...sq,
+          ...(opts.holdUntilHealed !== undefined ? { holdUntilHealed: opts.holdUntilHealed } : {}),
+          ...(opts.berserker       !== undefined ? { berserker:       opts.berserker       } : {}),
+          ...(opts.manualTargetCpId !== undefined ? { manualTargetCpId: opts.manualTargetCpId } : {}),
+        }
+      }),
+    }))
+  }, [])
+
   const restart = useCallback((newConfig?: GameConfig) => {
     const fresh = createInitialState(newConfig ?? config)
     stateRef.current = fresh
@@ -165,5 +184,5 @@ export function useGameLoop(config: GameConfig) {
     setRenderState(fresh)
   }, [config])
 
-  return { state: renderState, selectAbility, fireAbility, fireAbilityAt, restart }
+  return { state: renderState, selectAbility, fireAbility, fireAbilityAt, setSquadOrders, restart }
 }

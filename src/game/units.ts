@@ -73,11 +73,14 @@ export function assignTeamSquads(
 
   const assigned = new Map<string, { role: SquadRole; targetCpId: string | null }>()
 
-  // Step 1 — retreat (hysteresis)
+  // Step 1 — retreat (hysteresis), honoring berserker / holdUntilHealed flags
   const retreating = new Set<string>()
   for (const s of mine) {
+    if (s.berserker) continue                               // berserker: never retreat
     const hpPct = s.hp / s.maxHp
-    if (hpPct < retreatEnter || (s.role === 'retreat' && hpPct < retreatExit)) {
+    const forceRetreat  = s.holdUntilHealed && hpPct < 1.0 // holdUntilHealed: retreat until 100%
+    const normalRetreat = hpPct < retreatEnter || (s.role === 'retreat' && hpPct < retreatExit)
+    if (forceRetreat || normalRetreat) {
       retreating.add(s.id)
       assigned.set(s.id, { role: 'retreat', targetCpId: null })
     }
@@ -86,10 +89,22 @@ export function assignTeamSquads(
   const freeSquads = mine.filter(s => !retreating.has(s.id))
   const usedCpIds  = new Set<string>()
 
-  // Step 1b — commander order overrides normal AI for all free squads
+  // Step 1b — per-squad manual target (commander-assigned CP, highest priority)
+  for (const s of freeSquads) {
+    if (s.manualTargetCpId) {
+      const targetExists = cps.some(c => c.id === s.manualTargetCpId)
+      if (targetExists) {
+        assigned.set(s.id, { role: 'attack', targetCpId: s.manualTargetCpId })
+      }
+    }
+  }
+
+  // Step 1c — commander order overrides normal AI for remaining free squads (no manual target)
   if (orderType && orderCpId) {
     for (const s of freeSquads) {
-      assigned.set(s.id, { role: orderType, targetCpId: orderCpId })
+      if (!assigned.has(s.id)) {  // don't override per-squad manual targets
+        assigned.set(s.id, { role: orderType, targetCpId: orderCpId })
+      }
     }
     return squads.map(s => {
       const a = assigned.get(s.id)

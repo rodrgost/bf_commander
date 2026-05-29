@@ -97,6 +97,7 @@ function generateSquads(blueCount: number, redCount: number): Squad[] {
       maxHp: SOLDIER_COUNT * SOLDIER_MAX_HP,
       status: 'idle', role: 'attack', targetCpId: null,
       suppressedTimer: 0, revealedTimer: 0, respawnTimer: 0,
+      holdUntilHealed: false, berserker: false, manualTargetCpId: null,
     })
   }
 
@@ -112,6 +113,7 @@ function generateSquads(blueCount: number, redCount: number): Squad[] {
       maxHp: SOLDIER_COUNT * SOLDIER_MAX_HP,
       status: 'idle', role: 'attack', targetCpId: null,
       suppressedTimer: 0, revealedTimer: 0, respawnTimer: 0,
+      holdUntilHealed: false, berserker: false, manualTargetCpId: null,
     })
   }
 

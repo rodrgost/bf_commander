@@ -98,11 +98,14 @@ function tickRespawns(
         role:   'attack' as const,
         soldiers,
         hp,
-        position:        { x: bx, y: by },
-        targetCpId:      null,
-        suppressedTimer: 0,
-        revealedTimer:   s.team === 'red' ? 5 : 0,
-        respawnTimer:    0,
+        position:         { x: bx, y: by },
+        targetCpId:       null,
+        suppressedTimer:  0,
+        revealedTimer:    s.team === 'red' ? 5 : 0,
+        respawnTimer:     0,
+        holdUntilHealed:  false,          // always reset on respawn
+        berserker:        s.berserker,    // persists across respawn
+        manualTargetCpId: s.manualTargetCpId,  // persists across respawn
       }
     }
     return { ...s, respawnTimer }
@@ -233,10 +236,11 @@ export function tick(state: GameState, dt: number): GameState {
   const uavTimer  = Math.max(0, state.uavTimer - dt)
   const uavActive = uavTimer > 0
 
-  // 13. Reveal timers on enemy squads
+  // 13. Reveal timers on enemy squads + auto-clear holdUntilHealed once fully healed
   const squadsWithReveal = squads.map(s => ({
     ...s,
-    revealedTimer: Math.max(0, s.revealedTimer - dt),
+    revealedTimer:   Math.max(0, s.revealedTimer - dt),
+    holdUntilHealed: s.holdUntilHealed && s.hp < s.maxHp,  // auto-clears when squad reaches 100% HP
   }))
 
   // 14. Update red AI CP pressure map

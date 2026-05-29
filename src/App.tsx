@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { GameConfig, SelectionTarget } from './types'
 import { useGameLoop } from './hooks/useGameLoop'
 import GameCanvas from './components/GameCanvas'
@@ -20,23 +20,47 @@ export default function App() {
 
 // Separate component so useGameLoop only mounts after config is set
 function Game({ config, onRestart }: { config: GameConfig; onRestart: () => void }) {
-  const { state, selectAbility, fireAbility, fireAbilityAt, restart } = useGameLoop(config)
+  const { state, selectAbility, fireAbility, fireAbilityAt, setSquadOrders, restart } = useGameLoop(config)
   const [selection, setSelection] = useState<SelectionTarget | null>(null)
+
+  // Pending squad-target mode: player clicked "Definir Alvo" and must now pick a CP
+  const [pendingSquadTarget, setPendingSquadTarget] = useState(false)
+
+  // Escape cancels squad-target mode (ability Escape is handled in useGameLoop)
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setPendingSquadTarget(false)
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
 
   const handleRestart = () => {
     setSelection(null)
+    setPendingSquadTarget(false)
     onRestart()
   }
 
-  // Auto-clear selection when selected squad dies
+  // Auto-clear selection when selected squads die; filter dead ids out of multi-select
   const effectiveSelection = (() => {
     if (!selection) return null
     if (selection.type === 'squad') {
-      const sq = state.squads.find(s => s.id === selection.id)
-      if (!sq || sq.status === 'dead') return null
+      const aliveIds = selection.ids.filter(id => {
+        const sq = state.squads.find(s => s.id === id)
+        return sq && sq.status !== 'dead'
+      })
+      if (aliveIds.length === 0) return null
+      return { type: 'squad' as const, ids: aliveIds }
     }
     return selection
   })()
+
+  // When squad-target mode is active and the user picks a CP on the canvas
+  const handleSquadTarget = (cpId: string) => {
+    if (!effectiveSelection || effectiveSelection.type !== 'squad') return
+    setSquadOrders(effectiveSelection.ids, { manualTargetCpId: cpId })
+    setPendingSquadTarget(false)
+  }
 
   return (
     <div className={styles.root}>
@@ -52,12 +76,17 @@ function Game({ config, onRestart }: { config: GameConfig; onRestart: () => void
           state={state}
           onMapClick={fireAbility}
           selection={effectiveSelection}
-          onSelect={setSelection}
+          onSelect={sel => { setSelection(sel); setPendingSquadTarget(false) }}
+          pendingSquadTarget={pendingSquadTarget}
+          onSquadTarget={handleSquadTarget}
         />
         <ContextPanel
           selection={effectiveSelection}
           state={state}
           fireAbilityAt={fireAbilityAt}
+          setSquadOrders={setSquadOrders}
+          pendingSquadTarget={pendingSquadTarget}
+          setPendingSquadTarget={setPendingSquadTarget}
         />
       </div>
 
