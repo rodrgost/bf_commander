@@ -305,9 +305,9 @@ export default function GameCanvas({
               )}
 
               {/* Shape depends on ownership:
-                    neutral → diamond (rotated square)
                     blue    → axis-aligned square
-                    red     → hexagon                   */}
+                    red     → diamond (rotated square)
+                    neutral → diamond (rotated square)  */}
               {cp.owner === 'blue' ? (
                 // ── Square (axis-aligned) ──────────────────────────────────
                 <>
@@ -321,21 +321,8 @@ export default function GameCanvas({
                     fill={fill} stroke={stroke} strokeWidth={1.5}
                   />
                 </>
-              ) : cp.owner === 'red' ? (
-                // ── Hexagon ───────────────────────────────────────────────
-                <>
-                  <RegularPolygon x={cp.position.x} y={cp.position.y}
-                    sides={6} radius={13}
-                    fill="transparent" strokeWidth={0}
-                    shadowColor={stroke} shadowBlur={18} shadowOpacity={0.95}
-                  />
-                  <RegularPolygon x={cp.position.x} y={cp.position.y}
-                    sides={6} radius={10}
-                    fill={fill} stroke={stroke} strokeWidth={1.5}
-                  />
-                </>
               ) : (
-                // ── Diamond / neutral (rotated square) ───────────────────
+                // ── Diamond (rotated square) — red & neutral ──────────────
                 <>
                   <Rect x={cp.position.x} y={cp.position.y}
                     width={22} height={22} offsetX={11} offsetY={11} rotation={45}
@@ -349,9 +336,13 @@ export default function GameCanvas({
                 </>
               )}
 
-              {/* Initial letter — centred over any shape */}
-              <Text x={cp.position.x - 7} y={cp.position.y - 5}
-                text={letter} fill="#ffffff" fontSize={9} fontStyle="bold"
+              {/* Letter — pixel-perfect centre of the shape.
+                  Text node: width=14, align=center  → horizontal centre = x+7 = cp.x ✓
+                  fontSize=9, lineHeight≈1 → vertical centre ≈ y + 4.5; offset by -4 gives cp.y ✓ */}
+              <Text
+                x={cp.position.x - 7} y={cp.position.y - 4}
+                text={letter} fill="#fff" fontSize={9} fontStyle="bold"
+                fontFamily="'Courier New', Courier, monospace"
                 width={14} align="center"
               />
 
