@@ -82,6 +82,7 @@ function Game({ config, onRestart }: { config: GameConfig; onRestart: () => void
         />
         <ContextPanel
           selection={effectiveSelection}
+          onSelect={setSelection}
           state={state}
           fireAbilityAt={fireAbilityAt}
           setSquadOrders={setSquadOrders}

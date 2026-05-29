@@ -5,6 +5,7 @@ import { SQUAD_RESPAWN_TIME } from '../game/mapData'
 
 interface Props {
   selection:           SelectionTarget | null
+  onSelect:            (sel: SelectionTarget | null) => void
   state:               GameState
   fireAbilityAt:       (id: AbilityId, pos: Vec2) => void
   setSquadOrders:      (ids: string[], opts: {
@@ -218,21 +219,56 @@ function HpBar({ hp, maxHp }: { hp: number; maxHp: number }) {
 
 // ── Squad mini row (default panel) ────────────────────────────────────────
 
-function SquadRow({ squad, idx }: { squad: Squad; idx: number }) {
+function SquadRow({
+  squad, idx, selected, selectedIds, onSelect,
+}: {
+  squad: Squad
+  idx: number
+  selected: boolean
+  selectedIds: string[]
+  onSelect: (sel: SelectionTarget | null) => void
+}) {
   const isDead     = squad.status === 'dead'
   const role       = ROLE_LABEL[squad.role]
   const status     = STATUS_LABEL[squad.status]
   const aliveSol   = squad.soldiers.filter(s => s.hp > 0).length
   const respawnPct = isDead ? 1 - squad.respawnTimer / SQUAD_RESPAWN_TIME : 0
+  const canSelect  = !isDead
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (!canSelect) return
+    const ctrl = e.ctrlKey || e.metaKey
+    if (ctrl && selectedIds.length > 0) {
+      // Ctrl+click: toggle this squad in multi-selection
+      const newIds = selectedIds.includes(squad.id)
+        ? selectedIds.filter(id => id !== squad.id)
+        : [...selectedIds, squad.id]
+      onSelect(newIds.length > 0 ? { type: 'squad', ids: newIds } : null)
+    } else {
+      // Regular click: single-select / deselect
+      onSelect(selected && selectedIds.length === 1 ? null : { type: 'squad', ids: [squad.id] })
+    }
+  }
 
   return (
-    <div style={{
-      ...rowStyle,
-      opacity: isDead ? 0.45 : 1,
-      paddingTop: 4, paddingBottom: 4,
-      borderBottom: `1px solid ${BF4.rowBorder}`,
-    }}>
-      <span style={{ color: BF4.blue, fontWeight: 700, minWidth: 20 }}>B{idx + 1}</span>
+    <div
+      onClick={handleClick}
+      style={{
+        ...rowStyle,
+        opacity: isDead ? 0.4 : 1,
+        paddingTop: 5, paddingBottom: 5,
+        borderBottom: `1px solid ${selected ? BF4.blue + '40' : BF4.rowBorder}`,
+        background: selected ? BF4.blue + '10' : 'transparent',
+        borderLeft: `2px solid ${selected ? BF4.blue : 'transparent'}`,
+        cursor: canSelect ? 'pointer' : 'default',
+        transition: 'background 0.1s, border-color 0.1s',
+        userSelect: 'none',
+      }}
+      title={canSelect ? 'Clique para selecionar · Ctrl+Clique para multi-seleção' : undefined}
+    >
+      <span style={{ color: selected ? BF4.blue : BF4.textDim, fontWeight: 700, minWidth: 20, fontSize: 10 }}>
+        B{idx + 1}
+      </span>
 
       <span style={{ color: role.color, fontSize: 9, minWidth: 18 }} title={squad.role}>
         {role.icon}
@@ -382,7 +418,13 @@ function SquadOrderSection({
 
 // ── Sub-panels ────────────────────────────────────────────────────────────
 
-function DefaultPanel({ state }: { state: GameState }) {
+function DefaultPanel({
+  state, selectedIds, onSelect,
+}: {
+  state: GameState
+  selectedIds: string[]
+  onSelect: (sel: SelectionTarget | null) => void
+}) {
   const blue = state.squads.filter(s => s.team === 'blue')
   const red  = state.squads.filter(s => s.team === 'red')
   const redAlive = red.filter(s => s.status !== 'dead').length
@@ -394,7 +436,14 @@ function DefaultPanel({ state }: { state: GameState }) {
   return (
     <>
       <div style={sectionTitle}>Esquadrões Aliados</div>
-      {blue.map((sq, i) => <SquadRow key={sq.id} squad={sq} idx={i} />)}
+      {blue.map((sq, i) => (
+        <SquadRow
+          key={sq.id} squad={sq} idx={i}
+          selected={selectedIds.includes(sq.id)}
+          selectedIds={selectedIds}
+          onSelect={onSelect}
+        />
+      ))}
 
       <div style={{ ...sectionTitle, color: BF4.redDim, marginTop: 4 }}>Intel Inimiga</div>
       <div style={{ ...rowStyle, justifyContent: 'space-between', padding: '5px 12px' }}>
@@ -425,126 +474,6 @@ function DefaultPanel({ state }: { state: GameState }) {
         <span style={{ color: BF4.textDim, fontSize: 9, width: '100%', marginTop: 4 }}>
           Ctrl+Click → multi-seleção
         </span>
-      </div>
-    </>
-  )
-}
-
-function SquadContextPanel({
-  squads, state, fireAbilityAt, setSquadOrders,
-  pendingSquadTarget, setPendingSquadTarget,
-}: {
-  squads: Squad[]
-  state: GameState
-  fireAbilityAt: (id: AbilityId, pos: Vec2) => void
-  setSquadOrders: Props['setSquadOrders']
-  pendingSquadTarget: boolean
-  setPendingSquadTarget: Props['setPendingSquadTarget']
-}) {
-  const isMulti = squads.length > 1
-  const first   = squads[0]!
-
-  // Combined HP
-  const totalHp    = squads.reduce((s, sq) => s + sq.hp, 0)
-  const totalMaxHp = squads.reduce((s, sq) => s + sq.maxHp, 0)
-
-  // For single-squad, show role + status
-  const role   = !isMulti ? ROLE_LABEL[first.role]   : null
-  const status = !isMulti ? STATUS_LABEL[first.status] : null
-  const aliveSol = !isMulti ? first.soldiers.filter(s => s.hp > 0).length : null
-
-  // Centroid of all selected squads (for ability targeting)
-  const centroid: Vec2 = {
-    x: squads.reduce((s, sq) => s + sq.position.x, 0) / squads.length,
-    y: squads.reduce((s, sq) => s + sq.position.y, 0) / squads.length,
-  }
-
-  return (
-    <>
-      <div style={header}>
-        {isMulti ? (
-          <>
-            <div style={{ ...headerTitle, color: '#60a5fa' }}>
-              ◈ {squads.length} SQUADS
-            </div>
-            <div style={{ color: BF4.textDim, fontSize: 9, marginTop: 4 }}>
-              {squads.map(s => s.id.toUpperCase()).join(' · ')}
-            </div>
-          </>
-        ) : (
-          <>
-            <div style={{ ...headerTitle, color: first.berserker ? BF4.berserker : '#60a5fa' }}>
-              ◈ SQUAD {first.id.toUpperCase()}
-              {first.berserker && ' ☠'}
-            </div>
-            <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-              <span style={{ color: role!.color, fontSize: 10 }}>{role!.icon} {role!.text}</span>
-              <span style={{ color: status!.color, fontSize: 10 }}>{status!.icon} {first.status.toUpperCase()}</span>
-            </div>
-          </>
-        )}
-      </div>
-
-      <div style={sectionTitle}>Status</div>
-
-      {!isMulti && (
-        <div style={{ ...rowStyle, justifyContent: 'space-between', padding: '5px 12px' }}>
-          <span>Soldados</span>
-          <span style={{
-            color: aliveSol! > 2 ? '#00BF44' : aliveSol! > 1 ? BF4.cooldown : BF4.red,
-            fontWeight: 700,
-          }}>
-            {aliveSol} / 4
-          </span>
-        </div>
-      )}
-
-      <div style={{ padding: '3px 12px 8px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-          <span style={{ fontSize: 10, color: '#2d4f6a' }}>HP {isMulti ? '(total)' : ''}</span>
-          <span style={{ fontSize: 10, color: '#475569' }}>
-            {Math.ceil(totalHp)} / {totalMaxHp}
-          </span>
-        </div>
-        <HpBar hp={totalHp} maxHp={totalMaxHp} />
-      </div>
-
-      {/* Multi-squad: show individual HP bars */}
-      {isMulti && squads.map(sq => {
-        const aliveSolInSq = sq.soldiers.filter(s => s.hp > 0).length
-        return (
-          <div key={sq.id} style={{ ...rowStyle, padding: '2px 12px', borderBottom: `1px solid ${BF4.rowBorder}` }}>
-            <span style={{ color: sq.berserker ? BF4.berserker : BF4.blue, fontWeight: 700, minWidth: 24 }}>
-              {sq.id.toUpperCase()}
-            </span>
-            <HpBar hp={sq.hp} maxHp={sq.maxHp} />
-            <span style={{ color: '#475569', fontSize: 10, minWidth: 20, textAlign: 'right' }}>
-              {aliveSolInSq}/4
-            </span>
-          </div>
-        )
-      })}
-
-      {!isMulti && first.suppressedTimer > 0 && (
-        <div style={{ ...rowStyle, color: BF4.suppress, fontSize: 10, padding: '2px 12px 6px' }}>
-          ⚡ Suprimido {Math.ceil(first.suppressedTimer)}s
-        </div>
-      )}
-
-      {/* ── Commander orders ── */}
-      <SquadOrderSection
-        squads={squads}
-        state={state}
-        controlPoints={state.controlPoints}
-        setSquadOrders={setSquadOrders}
-        pendingSquadTarget={pendingSquadTarget}
-        setPendingSquadTarget={setPendingSquadTarget}
-      />
-
-      {/* ── Commander abilities ── */}
-      <div style={sectionTitle}>Habilidades</div>
-      <div style={{ paddingTop: 4, paddingBottom: 8 }}>
-        <AbilBtn id="ammo" icon="📦" label="Suprimento" pos={centroid} state={state} fireAbilityAt={fireAbilityAt} />
       </div>
     </>
   )
@@ -665,41 +594,110 @@ function BaseContextPanel({ team, state }: {
 }
 
 // ── Main export ───────────────────────────────────────────────────────────
+//
+// Layout strategy:
+//   • CP or Base selected  → dedicated full-panel view (CP/Base context)
+//   • Nothing / Squads selected → squad list always visible, orders section
+//     appears below the list when squads are selected (Ctrl+click friendly)
 
 export default function ContextPanel({
-  selection, state, fireAbilityAt, setSquadOrders,
+  selection, onSelect, state, fireAbilityAt, setSquadOrders,
   pendingSquadTarget, setPendingSquadTarget,
 }: Props) {
-  let content: React.ReactNode
+  const selectedIds = selection?.type === 'squad' ? selection.ids : []
 
-  if (!selection) {
-    content = <DefaultPanel state={state} />
-  } else if (selection.type === 'squad') {
-    const squads = selection.ids
-      .map(id => state.squads.find(s => s.id === id && s.status !== 'dead'))
-      .filter(Boolean) as Squad[]
-    content = squads.length > 0
-      ? <SquadContextPanel
-          squads={squads}
-          state={state}
-          fireAbilityAt={fireAbilityAt}
-          setSquadOrders={setSquadOrders}
-          pendingSquadTarget={pendingSquadTarget}
-          setPendingSquadTarget={setPendingSquadTarget}
-        />
-      : <DefaultPanel state={state} />
-  } else if (selection.type === 'cp') {
+  // ── CP or Base: replace entire panel ──────────────────────────────────
+  if (selection?.type === 'cp') {
     const cp = state.controlPoints.find(c => c.id === selection.id)
-    content = cp
-      ? <CPContextPanel cp={cp} state={state} fireAbilityAt={fireAbilityAt} />
-      : <DefaultPanel state={state} />
-  } else {
-    content = <BaseContextPanel team={selection.team} state={state} />
+    return (
+      <div style={panel}>
+        {cp
+          ? <CPContextPanel cp={cp} state={state} fireAbilityAt={fireAbilityAt} />
+          : <DefaultPanel state={state} selectedIds={[]} onSelect={onSelect} />
+        }
+      </div>
+    )
   }
+  if (selection?.type === 'base') {
+    return (
+      <div style={panel}>
+        <BaseContextPanel team={selection.team} state={state} />
+      </div>
+    )
+  }
+
+  // ── Squad list (always visible) + optional orders section ─────────────
+  const selectedSquads = selectedIds
+    .map(id => state.squads.find(s => s.id === id && s.status !== 'dead'))
+    .filter(Boolean) as Squad[]
+
+  // Centroid for ability buttons
+  const centroid: Vec2 = selectedSquads.length > 0 ? {
+    x: selectedSquads.reduce((s, sq) => s + sq.position.x, 0) / selectedSquads.length,
+    y: selectedSquads.reduce((s, sq) => s + sq.position.y, 0) / selectedSquads.length,
+  } : { x: 0, y: 0 }
 
   return (
     <div style={panel}>
-      {content}
+      {/* Squad list — always shown, click to select */}
+      <DefaultPanel state={state} selectedIds={selectedIds} onSelect={onSelect} />
+
+      {/* Orders + abilities — shown only when squads are selected */}
+      {selectedSquads.length > 0 && (
+        <>
+          {/* Selection summary header */}
+          <div style={{
+            padding: '6px 12px 5px',
+            background: BF4.blue + '10',
+            borderTop: `1px solid ${BF4.blue}30`,
+            borderBottom: `1px solid ${BF4.border}`,
+          }}>
+            <div style={{ fontSize: 9, fontWeight: 900, color: BF4.blue, letterSpacing: '1.5px' }}>
+              {selectedSquads.length === 1
+                ? `◈ SQUAD ${selectedSquads[0].id.toUpperCase()}`
+                : `◈ ${selectedSquads.length} SQUADS SELECIONADOS`}
+            </div>
+            {selectedSquads.length > 1 && (
+              <div style={{ fontSize: 8, color: BF4.textDim, marginTop: 2 }}>
+                {selectedSquads.map(s => s.id.toUpperCase()).join(' · ')}
+              </div>
+            )}
+          </div>
+
+          {/* HP summary for multi-select */}
+          {selectedSquads.length > 1 && (
+            <div style={{ padding: '4px 12px 6px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                <span style={{ fontSize: 9, color: BF4.textDim }}>HP total</span>
+                <span style={{ fontSize: 9, color: '#475569' }}>
+                  {Math.ceil(selectedSquads.reduce((s, sq) => s + sq.hp, 0))} /
+                  {selectedSquads.reduce((s, sq) => s + sq.maxHp, 0)}
+                </span>
+              </div>
+              <HpBar
+                hp={selectedSquads.reduce((s, sq) => s + sq.hp, 0)}
+                maxHp={selectedSquads.reduce((s, sq) => s + sq.maxHp, 0)}
+              />
+            </div>
+          )}
+
+          {/* Squad orders */}
+          <SquadOrderSection
+            squads={selectedSquads}
+            state={state}
+            controlPoints={state.controlPoints}
+            setSquadOrders={setSquadOrders}
+            pendingSquadTarget={pendingSquadTarget}
+            setPendingSquadTarget={setPendingSquadTarget}
+          />
+
+          {/* Abilities */}
+          <div style={sectionTitle}>Habilidades</div>
+          <div style={{ paddingTop: 4, paddingBottom: 8 }}>
+            <AbilBtn id="ammo" icon="📦" label="Suprimento" pos={centroid} state={state} fireAbilityAt={fireAbilityAt} />
+          </div>
+        </>
+      )}
     </div>
   )
 }
