@@ -36,12 +36,6 @@ export default function HUD({ state, onRestart }: Props) {
   return (
     <div className={styles.hud}>
 
-      {/* ── US Tickets ── */}
-      <TicketBar tickets={state.blueTickets} max={state.ticketsMax} team="blue" />
-
-      {/* ── CN Tickets ── */}
-      <TicketBar tickets={state.redTickets} max={state.ticketsMax} team="red" />
-
       {/* ── Commander Points ── */}
       <div className={styles.cpSection}>
         <span className={styles.cpLabel}>CMD</span>

@@ -712,6 +712,81 @@ export default function GameCanvas({
                 fill="#FF6633" fontSize={14} fontStyle="bold" fontFamily={mono}
                 width={scoreW} align="center"
               />
+
+              {/* ── Ticket bars ── */}
+              {(() => {
+                const tkY     = cpRowY + 26    // row below CP badges
+                const BAR_H   = 6
+                const NUM_W   = 28
+                const LABEL_W = 18
+                const GAP     = 4
+                const half    = MAP_W / 2 - 10  // available width per side
+                const barW    = half - NUM_W - LABEL_W - GAP * 2
+
+                const bluePct = Math.max(0, state.blueTickets / state.ticketsMax)
+                const redPct  = Math.max(0, state.redTickets  / state.ticketsMax)
+
+                const blueCol = bluePct < 0.10 ? '#FF3333' : bluePct < 0.25 ? '#FFCC00' : '#00C8FF'
+                const redCol  = redPct  < 0.10 ? '#FF3333' : redPct  < 0.25 ? '#FFCC00' : '#FF6633'
+
+                // US side: label | bar→ | number   (left half)
+                const usLabelX = 10
+                const usBarX   = usLabelX + LABEL_W + GAP
+                const usNumX   = usBarX + barW + GAP
+
+                // CN side: number | ←bar | label   (right half, mirrored)
+                const cnNumX   = MAP_W / 2 + 10
+                const cnBarX   = cnNumX + NUM_W + GAP
+                const cnLabelX = cnBarX + barW + GAP
+
+                return (
+                  <>
+                    {/* Background pill */}
+                    <Rect x={8} y={tkY - 3} width={MAP_W - 16} height={BAR_H + 8}
+                      fill="rgba(0,5,12,0.65)" cornerRadius={3}
+                    />
+
+                    {/* US label */}
+                    <Text x={usLabelX} y={tkY} text="US"
+                      fill={blueCol} fontSize={8} fontStyle="bold" fontFamily={mono}
+                      width={LABEL_W} align="right"
+                    />
+                    {/* US bar track */}
+                    <Rect x={usBarX} y={tkY} width={barW} height={BAR_H}
+                      fill="#0a1828" cornerRadius={2}
+                    />
+                    {/* US bar fill */}
+                    <Rect x={usBarX} y={tkY} width={barW * bluePct} height={BAR_H}
+                      fill={blueCol} cornerRadius={2}
+                    />
+                    {/* US value */}
+                    <Text x={usNumX} y={tkY - 1} text={String(Math.ceil(state.blueTickets))}
+                      fill={blueCol} fontSize={9} fontStyle="bold" fontFamily={mono}
+                      width={NUM_W} align="left"
+                    />
+
+                    {/* CN value */}
+                    <Text x={cnNumX} y={tkY - 1} text={String(Math.ceil(state.redTickets))}
+                      fill={redCol} fontSize={9} fontStyle="bold" fontFamily={mono}
+                      width={NUM_W} align="right"
+                    />
+                    {/* CN bar track */}
+                    <Rect x={cnBarX} y={tkY} width={barW} height={BAR_H}
+                      fill="#1a0800" cornerRadius={2}
+                    />
+                    {/* CN bar fill — grows right-to-left */}
+                    <Rect x={cnBarX + barW * (1 - redPct)} y={tkY}
+                      width={barW * redPct} height={BAR_H}
+                      fill={redCol} cornerRadius={2}
+                    />
+                    {/* CN label */}
+                    <Text x={cnLabelX} y={tkY} text="CN"
+                      fill={redCol} fontSize={8} fontStyle="bold" fontFamily={mono}
+                      width={LABEL_W} align="left"
+                    />
+                  </>
+                )
+              })()}
             </>
           )
         })()}
