@@ -607,6 +607,116 @@ export default function GameCanvas({
         )}
       </Layer>
 
+      {/* ── MAP-EMBEDDED HUD (timer + CP score) ── */}
+      <Layer>
+        {(() => {
+          const mono = "'Courier New', Courier, monospace"
+          const hasLimit  = state.maxGameTime > 0
+          const remaining = hasLimit ? Math.max(0, state.maxGameTime - state.elapsed) : 0
+          const urgent    = hasLimit && remaining <= 60 && state.phase === 'playing'
+          const seconds   = hasLimit ? remaining : state.elapsed
+          const mm = String(Math.floor(seconds / 60)).padStart(2, '0')
+          const ss = String(Math.floor(seconds % 60)).padStart(2, '0')
+          const timerText = `${mm}:${ss}`
+          const timerColor = urgent
+            ? (Math.floor(state.elapsed * 2) % 2 === 0 ? '#FF3333' : '#FF6633')
+            : '#FFCC00'
+
+          const blueCPs = state.controlPoints.filter(cp => cp.owner === 'blue').length
+          const redCPs  = state.controlPoints.filter(cp => cp.owner === 'red').length
+          const cpCount = state.controlPoints.length
+
+          // Layout: timer centred at top, CP row below it
+          const cx      = MAP_W / 2
+          const timerY  = 7
+          const cpRowY  = 29
+
+          // Width of CP badge row: each badge is 16px + 3px gap
+          const BADGE_W   = 16
+          const BADGE_GAP = 3
+          const rowW      = cpCount * (BADGE_W + BADGE_GAP) - BADGE_GAP
+          const scoreW    = 20   // space for the number on each side
+          const totalW    = scoreW + 6 + rowW + 6 + scoreW
+          const rowLeft   = cx - totalW / 2
+
+          return (
+            <>
+              {/* Timer background pill */}
+              <Rect
+                x={cx - 38} y={timerY - 2}
+                width={76} height={18}
+                fill="rgba(0,5,12,0.70)" cornerRadius={3}
+              />
+              {/* Timer text */}
+              <Text
+                x={cx - 36} y={timerY}
+                text={hasLimit ? `⏱ ${timerText}` : timerText}
+                fill={timerColor}
+                fontSize={12} fontStyle="bold" fontFamily={mono}
+                width={72} align="center"
+              />
+
+              {/* CP score background */}
+              <Rect
+                x={cx - totalW / 2 - 6} y={cpRowY - 3}
+                width={totalW + 12} height={22}
+                fill="rgba(0,5,12,0.65)" cornerRadius={3}
+              />
+
+              {/* Blue CP count */}
+              <Text
+                x={rowLeft} y={cpRowY}
+                text={String(blueCPs)}
+                fill="#00C8FF" fontSize={14} fontStyle="bold" fontFamily={mono}
+                width={scoreW} align="center"
+              />
+
+              {/* CP badges */}
+              {state.controlPoints.map((cp, i) => {
+                const bx = rowLeft + scoreW + 6 + i * (BADGE_W + BADGE_GAP)
+                const by = cpRowY
+                const col = cp.owner === 'blue' ? '#00C8FF'
+                          : cp.owner === 'red'  ? '#FF6633' : '#555880'
+                const bg  = cp.owner === 'blue' ? '#001e2e'
+                          : cp.owner === 'red'  ? '#2a0a00' : '#121220'
+                const capCol = cp.cappingTeam === 'blue' ? '#00C8FF88' : '#FF663388'
+
+                return (
+                  <React.Fragment key={cp.id}>
+                    {/* Badge background */}
+                    <Rect x={bx} y={by} width={BADGE_W} height={16}
+                      fill={bg} stroke={cp.cappingTeam ? capCol : col + '55'}
+                      strokeWidth={1} cornerRadius={2}
+                    />
+                    {/* Capture fill */}
+                    {cp.cappingTeam && cp.captureProgress > 0 && (
+                      <Rect x={bx} y={by + 16 - 16 * cp.captureProgress}
+                        width={BADGE_W} height={16 * cp.captureProgress}
+                        fill={capCol} cornerRadius={2}
+                      />
+                    )}
+                    {/* Letter */}
+                    <Text x={bx} y={by + 3}
+                      text={cp.label[0]} fill={col}
+                      fontSize={9} fontStyle="bold" fontFamily={mono}
+                      width={BADGE_W} align="center"
+                    />
+                  </React.Fragment>
+                )
+              })}
+
+              {/* Red CP count */}
+              <Text
+                x={rowLeft + scoreW + 6 + rowW + 6} y={cpRowY}
+                text={String(redCPs)}
+                fill="#FF6633" fontSize={14} fontStyle="bold" fontFamily={mono}
+                width={scoreW} align="center"
+              />
+            </>
+          )
+        })()}
+      </Layer>
+
       {/* ── GAME OVER OVERLAY ── */}
       <Layer>
         {state.phase !== 'playing' && (

@@ -6,117 +6,38 @@ interface Props {
   onRestart: () => void
 }
 
-function formatTime(seconds: number): string {
-  const m = Math.floor(seconds / 60)
-  const s = Math.floor(seconds % 60)
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-}
-
 // ── Ticket bar ─────────────────────────────────────────────────────────────
-// BF4 palette: US = #00C8FF, CN = #FF6633
 
-interface TicketBarProps {
-  tickets: number
-  max:     number
-  team:    'blue' | 'red'
-}
-
-function TicketBar({ tickets, max, team }: TicketBarProps) {
+function TicketBar({ tickets, max, team }: { tickets: number; max: number; team: 'blue' | 'red' }) {
   const pct = Math.max(0, tickets / max) * 100
-
-  const baseColor = team === 'blue' ? '#00C8FF' : '#FF6633'
-  const fillColor = pct < 10  ? '#FF6633'
-                  : pct < 25  ? '#FFCC00'
-                  : baseColor
+  const base = team === 'blue' ? '#00C8FF' : '#FF6633'
+  const fill = pct < 10 ? '#FF6633' : pct < 25 ? '#FFCC00' : base
 
   return (
     <div className={styles.ticketGroup}>
-      <span className={styles.ticketLabel} style={{ color: fillColor }}>
+      <span className={styles.ticketLabel} style={{ color: fill }}>
         {team === 'blue' ? 'US' : 'CN'}
       </span>
       <div className={styles.ticketBarWrap}>
-        <div
-          className={styles.ticketBar}
-          style={{
-            width:      `${pct}%`,
-            background: fillColor,
-            marginLeft: team === 'red' ? 'auto' : undefined,
-          }}
+        <div className={styles.ticketBar}
+          style={{ width: `${pct}%`, background: fill, marginLeft: team === 'red' ? 'auto' : undefined }}
         />
       </div>
-      <span className={styles.ticketValue} style={{ color: fillColor }}>
-        {Math.ceil(tickets)}
-      </span>
+      <span className={styles.ticketValue} style={{ color: fill }}>{Math.ceil(tickets)}</span>
     </div>
-  )
-}
-
-// ── CP letter badge ────────────────────────────────────────────────────────
-
-function CPBadge({ label, owner, capturing }: {
-  label: string; owner: string; capturing?: string | null
-}) {
-  const isBlue    = owner === 'blue'
-  const isRed     = owner === 'red'
-  const isCapture = !!capturing
-
-  const bg    = isBlue ? '#003a5e' : isRed ? '#4a1400' : '#1e1e2e'
-  const color = isBlue ? '#00C8FF' : isRed ? '#FF6633' : '#555880'
-  const border = isCapture
-    ? `1px solid ${capturing === 'blue' ? '#00C8FF88' : '#FF663388'}`
-    : `1px solid ${color}44`
-
-  return (
-    <span className={styles.cpBadge} style={{ background: bg, color, border }}>
-      {label[0]}
-    </span>
   )
 }
 
 // ── Main HUD ──────────────────────────────────────────────────────────────
 
 export default function HUD({ state, onRestart }: Props) {
-  const blueCPs = state.controlPoints.filter(cp => cp.owner === 'blue').length
-  const redCPs  = state.controlPoints.filter(cp => cp.owner === 'red').length
-  const cpPct   = (state.commanderPoints / state.commanderPointsMax) * 100
-
-  // ── Timer display ─────────────────────────────────────────────────────
-  // If a time limit is set: show countdown; otherwise show elapsed time.
-  const hasLimit  = state.maxGameTime > 0
-  const remaining = hasLimit ? Math.max(0, state.maxGameTime - state.elapsed) : 0
-  const urgent    = hasLimit && remaining <= 60 && state.phase === 'playing'
-  const timerText = hasLimit ? formatTime(remaining) : formatTime(state.elapsed)
-  const timerColor = urgent
-    ? (Math.floor(state.elapsed * 2) % 2 === 0 ? '#FF3333' : '#FF6633')  // blink between two reds
-    : '#FFCC00'
+  const cpPct = (state.commanderPoints / state.commanderPointsMax) * 100
 
   return (
     <div className={styles.hud}>
 
-      {/* ── Timer ── */}
-      <div className={styles.section}>
-        {hasLimit && <span style={{ fontSize: 8, color: '#2e4557', marginRight: 3, fontFamily: 'Courier New, monospace' }}>⏱</span>}
-        <span className={styles.timer} style={{ color: timerColor }}>{timerText}</span>
-      </div>
-
       {/* ── US Tickets ── */}
       <TicketBar tickets={state.blueTickets} max={state.ticketsMax} team="blue" />
-
-      {/* ── CP status bar ── */}
-      <div className={styles.cpScore}>
-        <span className={styles.blueScore}>{blueCPs}</span>
-        <div className={styles.cpBadges}>
-          {state.controlPoints.map(cp => (
-            <CPBadge
-              key={cp.id}
-              label={cp.label}
-              owner={cp.owner}
-              capturing={cp.cappingTeam}
-            />
-          ))}
-        </div>
-        <span className={styles.redScore}>{redCPs}</span>
-      </div>
 
       {/* ── CN Tickets ── */}
       <TicketBar tickets={state.redTickets} max={state.ticketsMax} team="red" />
